@@ -1,0 +1,14 @@
+<errors>
+  <conversion-errors>
+    <entry name="1" tag="yellow">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/bgp/dampening-profile/entry[@name='default']</source-xpath>
+      <error-code>10000</error-code>
+      <error-message>Virtual router dampening profiles are incompatible with logical router dampening profiles due to mapping issues. The Profile is migrated with default values, but not associated with any of the peer-groups.</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>bgp</protocol>
+        </metadata>
+      </entry>
+    </conversion-errors>
+  </errors>

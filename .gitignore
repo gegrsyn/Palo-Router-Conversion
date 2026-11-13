@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets: never commit
+*.env
+.env*
+.secrets/
+*.pem
+*.key
+
+# Real firewall configs and converter output must never land here.
+# Only the synthetic, redacted lab configs under examples/ are tracked.
+/*.xml
+/*.txt
+out/
+exports/
+running-config*.xml
+!examples/**/*.xml
+
+# Editors / OS / local tool state
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.claude/settings.local.json

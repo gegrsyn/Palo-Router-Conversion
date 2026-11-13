@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Offline by design: no network access of any kind is allowed from this page. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:">
+<title>vr2lr routing converter</title>
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --text: #1b1f24; --muted: #5b6573; --border: #d9dee5;
+  --accent: #1f5fbf; --accent-text: #ffffff; --drop: #eef3fb;
+  --ok-bg: #e7f5ec; --ok-fg: #17663a; --warn-bg: #fdf3e1; --warn-fg: #8a5300; --bad-bg: #fbe9e9; --bad-fg: #a1262b;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171b; --surface: #1d2126; --text: #e6e9ed; --muted: #9aa4b1; --border: #333a42;
+    --accent: #5b9bff; --accent-text: #0d1117; --drop: #1b2533;
+    --ok-bg: #133222; --ok-fg: #7fd6a2; --warn-bg: #3a2c12; --warn-fg: #f0c06a; --bad-bg: #3b1a1c; --bad-fg: #f2999c;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 32px 16px 48px; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.05rem; margin: 0 0 8px; }
+p { margin: 0 0 8px; }
+.sub { color: var(--muted); margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+.drop { display: block; position: relative; border: 2px dashed var(--border); border-radius: 10px; padding: 32px 16px; text-align: center; background: var(--drop);
+  cursor: pointer; }
+.drop.over { border-color: var(--accent); }
+.drop strong { display: block; font-size: 1.05rem; margin-bottom: 4px; }
+.drop span { color: var(--muted); }
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.badge { display: inline-block; font-weight: 600; padding: 4px 10px; border-radius: 999px; margin-bottom: 8px; }
+.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.bad { background: var(--bad-bg); color: var(--bad-fg); }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 16px; margin: 8px 0 12px; }
+dt { color: var(--muted); }
+dd { margin: 0; overflow-wrap: anywhere; }
+ul { margin: 0; padding-left: 20px; }
+li { margin-bottom: 6px; }
+ol { margin: 0; padding-left: 20px; }
+.section { margin-top: 16px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+button { font: inherit; border-radius: 8px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, .drop:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+label.partial { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; color: var(--muted); }
+.hidden { display: none !important; }
+footer { color: var(--muted); font-size: .85rem; margin-top: 24px; }
+code { font-family: var(--mono); font-size: .9em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>PA-220 → PA-520 routing converter</h1>
+  <p class="sub">Converts the legacy routing (virtual routers) in a PA-220 configuration to Advanced Routing (logical routers) for the PA-520.
+    Everything happens in this browser window. The file is not uploaded anywhere.</p>
+
+  <section class="card" id="pick">
+    <h2>1. Choose the PA-220 configuration</h2>
+    <p>On the PA-220: <em>Device &gt; Setup &gt; Operations &gt; Export named configuration snapshot</em> and pick <code>running-config.xml</code>.</p>
+    <label class="drop" id="drop" tabindex="0">
+      <strong>Drop the .xml file here</strong>
+      <span>or click to choose it</span>
+      <input type="file" id="file" accept=".xml,text/xml,application/xml">
+    </label>
+  </section>
+
+  <section class="card hidden" id="result" aria-live="polite">
+    <h2>2. Result</h2>
+    <div id="badge" class="badge"></div>
+    <dl id="facts"></dl>
+    <p id="summary"></p>
+    <div id="sections"></div>
+    <label class="partial hidden" id="partial-wrap">
+      <input type="checkbox" id="partial">
+      <span>I will handle the items above by hand. Let me download the partially converted file anyway.</span>
+    </label>
+    <div class="actions">
+      <button class="primary" id="dl-config">Download converted config</button>
+      <button id="dl-report">Download report</button>
+      <button id="again">Convert another file</button>
+    </div>
+  </section>
+
+  <section class="card hidden" id="steps">
+    <h2>3. Next steps on the PA-520 (PAN-OS 12.1)</h2>
+    <ol id="steps-list"></ol>
+  </section>
+
+  <footer>vr2lr <span id="ver"></span>. Static routing only: BGP, OSPF, RIP, redistribution and multicast routing are reported, not converted.</footer>
+</main>
+
+<script id="vr2lr-core">
+'use strict';
+// ---- converter core: a line-for-line port of vr2lr.py. Keep the two in lockstep (lab/parity.py checks). ----
+const VERSION = '0.2.0';
+const ADMIN_DIST_MAP = {
+  'static': ['static'], 'static-ipv6': ['static-ipv6'],
+  'ospf-int': ['ospf-intra', 'ospf-inter'], 'ospf-ext': ['ospf-ext'],
+  'ospfv3-int': ['ospfv3-intra', 'ospfv3-inter'], 'ospfv3-ext': ['ospfv3-ext'],
+  'ibgp': ['bgp-internal'], 'ebgp': ['bgp-external'], 'rip': ['rip'],
+};
+const ADMIN_DIST_DEFAULT = {'static': '10', 'static-ipv6': '10', 'ospf-int': '30', 'ospf-ext': '110', 'ospfv3-int': '30',
+  'ospfv3-ext': '110', 'ibgp': '200', 'ebgp': '20', 'rip': '120'};
+const PROTOCOL_NAMES = {'bgp': 'BGP', 'ospf': 'OSPF', 'ospfv3': 'OSPFv3', 'rip': 'RIP',
+  'redist-profile': 'a redistribution profile', 'redist-profile-ipv6': 'an IPv6 redistribution profile'};
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+class InputError extends Error {}
+
+// ElementTree-like helpers over the DOM (direct-child paths only, like ET.find with a relative path)
+const kids = (el, tag) => Array.from(el.children).filter(c => c.tagName === tag);
+function findAll(el, path) {
+  let cur = [el];
+  for (const t of path.split('/')) cur = cur.flatMap(c => kids(c, t));
+  return cur;
+}
+const find = (el, path) => findAll(el, path)[0] || null;
+const findtext = (el, path) => { const e = find(el, path); return e ? e.textContent : null; };
+function sub(parent, tag, text) {
+  const e = parent.ownerDocument.createElement(tag);
+  if (text !== undefined && text !== null) e.textContent = text;
+  parent.appendChild(e);
+  return e;
+}
+function rename(el, tag) {
+  const n = el.ownerDocument.createElement(tag);
+  for (const a of Array.from(el.attributes)) n.setAttribute(a.name, a.value);
+  while (el.firstChild) n.appendChild(el.firstChild);
+  el.parentNode.replaceChild(n, el);
+  return n;
+}
+const plural = (k, one, many) => `${k} ${k === 1 ? one : many}`;
+
+class Report {
+  constructor() {
+    this.changes = []; this.checks = []; this.todos = [];
+    this.routers = 0; this.converted = 0; this.skipped = 0;
+    this.hostname = ''; this.version = '';
+  }
+  change(m) { this.changes.push(m); }
+  check(m) { this.checks.push(m); }
+  todo(m) { this.todos.push(m); }
+  status() { return this.todos.length ? 'bad' : this.checks.length ? 'warn' : 'ok'; }
+  result() {
+    if (this.todos.length) return `NOT READY - ${plural(this.todos.length, 'item', 'items')} could not be converted (see below). ` +
+      'Do not import this config until they are handled by hand.';
+    if (this.checks.length) return 'READY, WITH WARNINGS - read "Check these" below before you import.';
+    return 'READY - nothing needs your attention.';
+  }
+  summary() {
+    let s = `${plural(this.routers, 'virtual router', 'virtual routers')} became ` +
+      `${plural(this.routers, 'logical router', 'logical routers')}. ` +
+      `${plural(this.converted, 'static route', 'static routes')} converted`;
+    return s + (this.skipped ? `, ${this.skipped} not converted.` : '.');
+  }
+  sections() {
+    return [['Not converted - must be handled by hand', this.todos], ['Check these', this.checks],
+      ['What was changed', this.changes]].filter(([, items]) => items.length);
+  }
+  nextSteps(outName) {
+    return [`Device > Setup > Operations > Import named configuration snapshot: choose ${outName}. Keep that file ` +
+      'name. PAN-OS only accepts names of up to 32 characters made of letters, digits, ".", "_" and "-", so if ' +
+      'your browser saved it as "... (1).xml", rename it first.',
+      'Load named configuration snapshot: choose the same file. This replaces the whole candidate configuration of ' +
+      'the PA-520 (management IP, hostname, admins, policies) with this one.',
+      'Commit > Validate Commit, and fix anything it reports.',
+      'Commit.'];
+  }
+  text(inName, outName) {
+    let out = [`vr2lr ${VERSION} conversion report`, '',
+      `Input file : ${inName}`,
+      `Firewall   : ${this.hostname || '(no hostname)'} (PAN-OS ${this.version || 'unknown'})`,
+      `Output file: ${outName}`,
+      `Result     : ${this.result()}`, '', this.summary()];
+    for (const [title, items] of this.sections()) out = out.concat(['', title], items.map(m => `  - ${m}`));
+    out = out.concat(['', 'Next steps on the PA-520 (PAN-OS 12.1)',
+      `  1. Device > Setup > Operations > Import named configuration snapshot: choose ${outName}.`,
+      '     Keep that file name. PAN-OS only accepts names of up to 32 characters made of letters,',
+      '     digits, ".", "_" and "-", so if your browser saved it as "... (1).xml", rename it first.',
+      '  2. Load named configuration snapshot: choose the same file. This replaces the whole candidate',
+      '     configuration of the PA-520 (management IP, hostname, admins, policies) with this one.',
+      '  3. Commit > Validate Commit, and fix anything it reports.',
+      '  4. Commit.',
+      '  Encrypted values in the file (keys, passwords) only work if the PA-520 uses the same master',
+      '  key as the PA-220.']);
+    return out.join('\n') + '\n';
+  }
+}
+
+function protocolInUse(p) {
+  if (findtext(p, 'enable') === 'yes') return true;
+  if (p.tagName === 'redist-profile' || p.tagName === 'redist-profile-ipv6') return p.children.length > 0;
+  return Array.from(p.children).some(c => c.tagName !== 'enable' && c.tagName !== 'dampening-profile');
+}
+
+function convertStatic(entry, fam, vrName, rep, uniOut, mcOut) {
+  const name = entry.getAttribute('name');
+  const dest = findtext(entry, 'destination');
+  const rt = find(entry, 'route-table');
+  const rib = rt && rt.children.length ? rt.children[0].tagName : 'unicast';
+  if (rib === 'no-install') {
+    rep.skipped += 1;
+    rep.check(`Static route "${name}" (${dest}) in "${vrName}" was NOT converted. It is set to "no-install" ` +
+      '(kept in the config but not used for forwarding), and Advanced Routing has no such setting. ' +
+      'Add it by hand on the PA-520 only if it should be an active route.');
+    return;
+  }
+  if (rib === 'unicast' || rib === 'both') {
+    const e = entry.cloneNode(true);
+    const r = find(e, 'route-table');
+    if (r) e.removeChild(r);
+    const nh = find(e, 'nexthop');
+    if (nh && find(nh, 'next-vr')) rename(find(nh, 'next-vr'), 'next-lr');
+    const bfd = find(e, 'bfd/profile');
+    if (bfd && bfd.textContent === 'Inherit-vr-global-setting') {
+      e.removeChild(find(e, 'bfd'));
+      rep.check(`Static route "${name}" (${dest}) in "${vrName}" used BFD "Inherit-vr-global-setting", which ` +
+        'Advanced Routing does not have. The route was converted without BFD; add a BFD profile by ' +
+        'hand if it needs one.');
+    }
+    uniOut.appendChild(e);
+  }
+  if (rib === 'multicast' || rib === 'both') {
+    if (fam !== 'ipv4') {
+      rep.todo(`IPv6 static route "${name}" (${dest}) in "${vrName}" is in the multicast routing table; ` +
+        'this version cannot convert it.');
+      if (rib === 'multicast') { rep.skipped += 1; return; }
+    } else {
+      const nh = find(entry, 'nexthop');
+      const ifc = findtext(entry, 'interface');
+      if (!nh || !find(nh, 'ip-address') || !ifc) {
+        rep.todo(`Static route "${name}" (${dest}) in "${vrName}" is in the multicast routing table but has ` +
+          'no interface or no next-hop IP address, which Advanced Routing requires for multicast ' +
+          'static routes. It was not converted.');
+        if (rib === 'multicast') { rep.skipped += 1; return; }
+      } else {
+        const m = sub(mcOut, 'entry');
+        m.setAttribute('name', name);
+        sub(m, 'destination', dest);
+        sub(m, 'interface', ifc);
+        sub(sub(m, 'nexthop'), 'ip-address', findtext(nh, 'ip-address'));
+        if (findtext(entry, 'admin-dist')) sub(m, 'preference', findtext(entry, 'admin-dist'));
+        const was = rib === 'multicast'
+          ? 'the legacy multicast routing table; it is now a multicast static route'
+          : 'both legacy routing tables (unicast and multicast); it is now both a unicast and a multicast ' +
+            'static route';
+        const dropped = find(entry, 'metric') ? ' Its metric does not apply to multicast routes.' : '';
+        rep.change(`Static route "${name}" (${dest}) in "${vrName}" was in ${was}.${dropped}`);
+      }
+    }
+  }
+  rep.converted += 1;
+}
+
+function convertVr(vr, rep) {
+  const doc = vr.ownerDocument;
+  const name = vr.getAttribute('name');
+  rep.routers += 1;
+  const n = findAll(vr, 'routing-table/ip/static-route/entry').length + findAll(vr, 'routing-table/ipv6/static-route/entry').length;
+  rep.change(`Virtual router "${name}" is now logical router "${name}" (${n} static ` +
+    `route${n === 1 ? '' : 's'} in the legacy config).`);
+  const lr = doc.createElement('entry');
+  lr.setAttribute('name', name);
+  const vrf = sub(sub(lr, 'vrf'), 'entry');
+  vrf.setAttribute('name', 'default');
+  const ifs = find(vr, 'interface');
+  if (ifs) vrf.appendChild(ifs.cloneNode(true));
+  const ad = find(vr, 'admin-dists');
+  if (ad && ad.children.length) {
+    const out = doc.createElement('admin-dists');
+    for (const c of Array.from(ad.children)) {
+      if (has(ADMIN_DIST_DEFAULT, c.tagName) && c.textContent === ADMIN_DIST_DEFAULT[c.tagName]) continue;
+      for (const k of (has(ADMIN_DIST_MAP, c.tagName) ? ADMIN_DIST_MAP[c.tagName] : [])) sub(out, k, c.textContent);
+      if (!has(ADMIN_DIST_MAP, c.tagName))
+        rep.todo(`Administrative distance "${c.tagName}" in "${name}" has no known Advanced Routing equivalent.`);
+    }
+    if (out.children.length) {
+      vrf.appendChild(out);
+      rep.change(`Administrative distances in "${name}" carried over: ` +
+        Array.from(out.children).map(c => `${c.tagName} ${c.textContent}`).join(', ') + '.');
+    }
+  }
+  const ecmp = find(vr, 'ecmp');
+  if (ecmp) vrf.appendChild(ecmp.cloneNode(true));   // same schema in both engines (verified 10.2 -> 12.1)
+  const rt = doc.createElement('routing-table');
+  const mc = doc.createElement('static-route');
+  for (const [fam, path] of [['ipv4', 'routing-table/ip/static-route'], ['ipv6', 'routing-table/ipv6/static-route']]) {
+    const src = find(vr, path);
+    if (!src || !src.children.length) continue;
+    const out = doc.createElement('static-route');
+    for (const e of kids(src, 'entry')) convertStatic(e, fam, name, rep, out, mc);
+    if (out.children.length) sub(rt, fam === 'ipv4' ? 'ip' : 'ipv6').appendChild(out);
+  }
+  if (rt.children.length) vrf.appendChild(rt);
+  if (mc.children.length) sub(vrf, 'multicast').appendChild(mc);
+  const proto = find(vr, 'protocol');
+  if (proto) {
+    for (const p of Array.from(proto.children)) {
+      if (protocolInUse(p))
+        rep.todo(`"${name}" uses ${has(PROTOCOL_NAMES, p.tagName) ? PROTOCOL_NAMES[p.tagName] : p.tagName}. ` +
+          'This version converts static routing only; configure it by hand on the PA-520.');
+    }
+  }
+  const mcast = find(vr, 'multicast');
+  if (mcast && findtext(mcast, 'enable') === 'yes')
+    rep.todo(`"${name}" has multicast routing (PIM/IGMP) enabled. This version does not convert it; configure ` +
+      'it by hand on the PA-520.');
+  return lr;
+}
+
+function convert(root, rep) {
+  if (root.tagName !== 'config')
+    throw new InputError(`This is not a PAN-OS configuration file (it starts with <${root.tagName}>, not <config>).`);
+  if (find(root, 'devices/entry/device-group') || find(root, 'panorama'))
+    throw new InputError('This looks like a Panorama configuration. Export the running configuration from the ' +
+      'PA-220 itself (Device > Setup > Operations > Export named configuration snapshot).');
+  const devs = findAll(root, 'devices/entry');
+  if (!devs.length)
+    throw new InputError('This config has no device section (devices/entry). Export the running configuration ' +
+      'from the PA-220 (Device > Setup > Operations > Export named configuration snapshot).');
+  rep.version = root.getAttribute('detail-version') || root.getAttribute('version') || '';
+  if (!find(root, 'devices/entry/network/virtual-router')) {
+    if (find(root, 'devices/entry/network/logical-router'))
+      throw new InputError('This config already uses Advanced Routing (logical routers); there is nothing to ' +
+        'convert.');
+    throw new InputError('This config has no virtual routers, so there is no routing to convert.');
+  }
+  const doc = root.ownerDocument;
+  for (const dev of devs) {
+    rep.hostname = rep.hostname || (findtext(dev, 'deviceconfig/system/hostname') || '');
+    const net = find(dev, 'network');
+    const vrs = net ? find(net, 'virtual-router') : null;
+    if (!vrs || !vrs.children.length) continue;
+    const old = find(net, 'logical-router');
+    if (old) {
+      net.removeChild(old);
+      rep.change('Removed an empty or stale logical-router section before converting.');
+    }
+    const lrs = doc.createElement('logical-router');
+    for (const vr of kids(vrs, 'entry')) lrs.appendChild(convertVr(vr, rep));
+    net.replaceChild(lrs, vrs);
+    // BFD profiles: network/profiles/bfd-profile -> network/routing-profile/bfd (same fields)
+    const bp = find(net, 'profiles/bfd-profile');
+    if (bp && bp.children.length) {
+      const rp = find(net, 'routing-profile') || sub(net, 'routing-profile');
+      const bfd = find(rp, 'bfd') || sub(rp, 'bfd');
+      for (const e of kids(bp, 'entry')) bfd.appendChild(e.cloneNode(true));
+      find(net, 'profiles').removeChild(bp);
+      const k = kids(bp, 'entry').length;
+      rep.change(`${k} BFD profile${k === 1 ? '' : 's'} moved to the routing profiles.`);
+    }
+    // vsys import lists: import/network/virtual-router -> import/network/logical-router
+    for (const vsys of findAll(dev, 'vsys/entry')) {
+      const imp = find(vsys, 'import/network/virtual-router');
+      if (imp) {
+        rename(imp, 'logical-router');
+        rep.change(`The ${vsys.getAttribute('name')} import list now lists logical routers instead of virtual ` +
+          'routers.');
+      }
+    }
+    // routing mode flag
+    const dc = find(dev, 'deviceconfig') || sub(dev, 'deviceconfig');
+    const st = find(dc, 'setting') || sub(dc, 'setting');
+    const ar = find(st, 'advance-routing') || sub(st, 'advance-routing');
+    ar.textContent = 'yes';
+    // anything else still pointing at a virtual router by tag name
+    for (const parent of [dev, ...dev.getElementsByTagName('*')]) {
+      for (const c of Array.from(parent.children)) {
+        if (c.tagName.includes('virtual-router'))
+          rep.todo(`The config still has a <${c.tagName}> element under <${parent.tagName}> that refers to a ` +
+            'virtual router. Review it by hand.');
+      }
+    }
+  }
+  return root;
+}
+
+// <input>-are.xml, made importable: PAN-OS (12.1.4, tested) accepts saved-config names of at most 32 characters
+// from letters, digits, '.', '_' and '-', ending in .xml and not starting with '-'.
+function outNameFor(inName) {
+  const base = inName.replace(/\\/g, '/').split('/').pop();
+  let stem = base.toLowerCase().endsWith('.xml') ? base.slice(0, -4) : base;
+  stem = stem.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[-.]+|[-.]+$/g, '').slice(0, 24).replace(/[-.]+$/, '') || 'converted';
+  return stem + '-are.xml';
+}
+
+// text in, everything the page needs out. Never throws.
+function convertText(text, inName) {
+  const outName = outNameFor(inName);
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length)
+    return {error: `${inName} is not valid XML. Is it the exported running configuration?`};
+  const rep = new Report();
+  try {
+    convert(doc.documentElement, rep);
+  } catch (e) {
+    if (e instanceof InputError) return {error: e.message};
+    throw e;
+  }
+  return {rep, outName, reportText: rep.text(inName, outName), xml: new XMLSerializer().serializeToString(doc)};
+}
+</script>
+
+<script id="vr2lr-ui">
+'use strict';
+const $ = id => document.getElementById(id);
+let current = null;
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text !== undefined) e.textContent = text;   // textContent only: config values never become markup
+  if (cls) e.className = cls;
+  return e;
+}
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], {type}));
+  const a = el('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+function show(res, inName) {
+  current = res;
+  $('result').classList.remove('hidden');
+  const facts = $('facts'), sections = $('sections');
+  facts.replaceChildren(); sections.replaceChildren();
+  const fact = (k, v) => { facts.append(el('dt', k), el('dd', v)); };
+  fact('Input file', inName);
+  if (res.error) {
+    $('badge').className = 'badge bad'; $('badge').textContent = 'Cannot convert this file';
+    $('summary').textContent = res.error;
+    $('partial-wrap').classList.add('hidden');
+    $('dl-config').classList.add('hidden'); $('dl-report').classList.add('hidden');
+    $('steps').classList.add('hidden');
+    return;
+  }
+  const rep = res.rep, status = rep.status();
+  $('badge').className = 'badge ' + status;
+  $('badge').textContent = {ok: 'Ready', warn: 'Ready, with warnings', bad: 'Not ready'}[status];
+  fact('Firewall', `${rep.hostname || '(no hostname)'} (PAN-OS ${rep.version || 'unknown'})`);
+  fact('Output file', res.outName);
+  fact('Result', rep.result());
+  $('summary').textContent = rep.summary();
+  for (const [title, items] of rep.sections()) {
+    const d = el('div', undefined, 'section');
+    d.append(el('h2', title));
+    const ul = el('ul');
+    for (const m of items) ul.append(el('li', m));
+    d.append(ul);
+    sections.append(d);
+  }
+  $('dl-config').classList.remove('hidden'); $('dl-report').classList.remove('hidden');
+  $('dl-config').textContent = `Download converted config (${res.outName})`;
+  $('partial').checked = false;
+  $('partial-wrap').classList.toggle('hidden', status !== 'bad');
+  $('dl-config').disabled = status === 'bad';
+  const ol = $('steps-list');
+  ol.replaceChildren(...rep.nextSteps(res.outName).map(s => el('li', s)));
+  const note = el('li', 'Encrypted values in the file (keys, passwords) only work if the PA-520 uses the same master key as the PA-220.');
+  note.style.listStyle = 'none';
+  ol.append(note);
+  $('steps').classList.remove('hidden');
+  $('result').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function handle(file) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    let res;
+    try { res = convertText(r.result, file.name); }
+    catch (e) { res = {error: 'Unexpected error while converting: ' + e.message}; }
+    current = Object.assign(res, {inName: file.name});
+    show(res, file.name);
+  };
+  r.onerror = () => show({error: 'The file could not be read.'}, file.name);
+  r.readAsText(file);
+}
+
+function init() {
+  $('ver').textContent = VERSION;
+  const drop = $('drop'), input = $('file');
+  input.addEventListener('change', () => { handle(input.files[0]); input.value = ''; });
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); handle(e.dataTransfer.files[0]); });
+  $('partial').addEventListener('change', () => { $('dl-config').disabled = !$('partial').checked; });
+  $('dl-config').addEventListener('click', () => current && current.xml && download(current.outName, current.xml, 'application/xml'));
+  $('dl-report').addEventListener('click', () => current && current.reportText &&
+    download(current.outName.replace(/\.xml$/, '-report.txt'), current.reportText, 'text/plain'));
+  $('again').addEventListener('click', () => {
+    current = null;
+    $('result').classList.add('hidden'); $('steps').classList.add('hidden');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  });
+
+  // Test hook for lab/parity.py: an injected base64 input is converted and the results written back as base64.
+  const t = $('vr2lr-test-input');
+  if (t) {
+    const bytes = Uint8Array.from(atob(t.textContent.trim()), c => c.charCodeAt(0));
+    const enc = s => { const b = new TextEncoder().encode(s); let x = ''; for (const c of b) x += String.fromCharCode(c); return btoa(x); };
+    let res;
+    try { res = convertText(new TextDecoder().decode(bytes), t.dataset.name); }
+    catch (e) { res = {error: 'EXCEPTION ' + e.message}; }
+    const out = el('pre'); out.id = 'vr2lr-test-output';
+    out.textContent = JSON.stringify({error: res.error || null, report: res.reportText ? enc(res.reportText) : null,
+      xml: res.xml ? enc(res.xml) : null});
+    document.body.append(out);
+  }
+}
+init();
+</script>
+</body>
+</html>

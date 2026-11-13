@@ -1,0 +1,937 @@
+<config detail-version="10.2.11" urldb="paloaltonetworks" version="10.2.0">
+  <mgt-config>
+    <users>
+      <entry name="admin">
+        <phash>REDACTED</phash>
+        <permissions>
+          <role-based>
+            <superuser>yes</superuser>
+            </role-based>
+          </permissions>
+        </entry>
+      <entry name="__openconfig">
+        <phash>REDACTED</phash>
+        <permissions>
+          <role-based>
+            <deviceadmin>
+              <member>localhost.localdomain</member>
+              </deviceadmin>
+            </role-based>
+          </permissions>
+        </entry>
+      </users>
+    <password-complexity>
+      <enabled>yes</enabled>
+      <minimum-length>8</minimum-length>
+      </password-complexity>
+    </mgt-config>
+  <shared>
+    <application />
+    <application-group />
+    <service />
+    <service-group />
+    <botnet>
+      <configuration>
+        <http>
+          <dynamic-dns>
+            <enabled>yes</enabled>
+            <threshold>5</threshold>
+            </dynamic-dns>
+          <malware-sites>
+            <enabled>yes</enabled>
+            <threshold>5</threshold>
+            </malware-sites>
+          <recent-domains>
+            <enabled>yes</enabled>
+            <threshold>5</threshold>
+            </recent-domains>
+          <ip-domains>
+            <enabled>yes</enabled>
+            <threshold>10</threshold>
+            </ip-domains>
+          <executables-from-unknown-sites>
+            <enabled>yes</enabled>
+            <threshold>5</threshold>
+            </executables-from-unknown-sites>
+          </http>
+        <other-applications>
+          <irc>yes</irc>
+          </other-applications>
+        <unknown-applications>
+          <unknown-tcp>
+            <destinations-per-hour>10</destinations-per-hour>
+            <sessions-per-hour>10</sessions-per-hour>
+            <session-length>
+              <maximum-bytes>100</maximum-bytes>
+              <minimum-bytes>50</minimum-bytes>
+              </session-length>
+            </unknown-tcp>
+          <unknown-udp>
+            <destinations-per-hour>10</destinations-per-hour>
+            <sessions-per-hour>10</sessions-per-hour>
+            <session-length>
+              <maximum-bytes>100</maximum-bytes>
+              <minimum-bytes>50</minimum-bytes>
+              </session-length>
+            </unknown-udp>
+          </unknown-applications>
+        </configuration>
+      <report>
+        <topn>100</topn>
+        <scheduled>yes</scheduled>
+        </report>
+      </botnet>
+    </shared>
+  <devices>
+    <entry name="localhost.localdomain">
+      <network>
+        <interface>
+          <ethernet>
+            <entry name="ethernet1/1">
+              <layer3>
+                <ip>
+                  <entry name="203.0.113.2/30" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/2">
+              <layer3>
+                <ip>
+                  <entry name="10.1.1.1/24" />
+                  </ip>
+                <ipv6>
+                  <enabled>yes</enabled>
+                  <address>
+                    <entry name="2001:db8:10:1::1/64" />
+                    </address>
+                  </ipv6>
+                <interface-management-profile>allow-ping</interface-management-profile>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/3">
+              <layer3>
+                <ip>
+                  <entry name="10.1.2.1/24" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/4">
+              <layer3>
+                <ip>
+                  <entry name="172.16.1.2/30" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/5">
+              <layer3>
+                <ip>
+                  <entry name="10.1.255.1/30" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/6">
+              <layer3>
+                <ip>
+                  <entry name="192.168.50.1/24" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/8">
+              <layer3>
+                <ip>
+                  <entry name="198.51.100.2/30" />
+                  </ip>
+                <ipv6>
+                  <enabled>yes</enabled>
+                  <address>
+                    <entry name="2001:db8:ffff::2/64" />
+                    </address>
+                  </ipv6>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/7">
+              <layer3>
+                <units>
+                  <entry name="ethernet1/7.10">
+                    <tag>10</tag>
+                    <ip>
+                      <entry name="10.1.10.1/24" />
+                      </ip>
+                    </entry>
+                  <entry name="ethernet1/7.20">
+                    <tag>20</tag>
+                    <ip>
+                      <entry name="10.1.20.1/24" />
+                      </ip>
+                    </entry>
+                  </units>
+                </layer3>
+              </entry>
+            </ethernet>
+          <loopback>
+            <units>
+              <entry name="loopback.1">
+                <ip>
+                  <entry name="10.1.0.1/32" />
+                  </ip>
+                </entry>
+              </units>
+            </loopback>
+          <tunnel>
+            <units>
+              <entry name="tunnel.1">
+                <ip>
+                  <entry name="10.255.255.2/30" />
+                  </ip>
+                </entry>
+              </units>
+            </tunnel>
+          </interface>
+        <profiles>
+          <monitor-profile>
+            <entry name="default">
+              <interval>3</interval>
+              <threshold>5</threshold>
+              <action>wait-recover</action>
+              </entry>
+            </monitor-profile>
+          <interface-management-profile>
+            <entry name="allow-ping">
+              <ping>yes</ping>
+              </entry>
+            </interface-management-profile>
+          <bfd-profile>
+            <entry name="bfd-fast">
+              <mode>active</mode>
+              <min-tx-interval>300</min-tx-interval>
+              <min-rx-interval>300</min-rx-interval>
+              <detection-multiplier>3</detection-multiplier>
+              <hold-time>0</hold-time>
+              </entry>
+            <entry name="bfd-static">
+              <mode>active</mode>
+              <min-tx-interval>500</min-tx-interval>
+              <min-rx-interval>500</min-rx-interval>
+              <detection-multiplier>4</detection-multiplier>
+              <hold-time>0</hold-time>
+              </entry>
+            </bfd-profile>
+          </profiles>
+        <ike>
+          <crypto-profiles>
+            <ike-crypto-profiles>
+              <entry name="default">
+                <encryption>
+                  <member>aes-128-cbc</member>
+                  <member>3des</member>
+                  </encryption>
+                <hash>
+                  <member>sha1</member>
+                  </hash>
+                <dh-group>
+                  <member>group2</member>
+                  </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                  </lifetime>
+                </entry>
+              <entry name="Suite-B-GCM-128">
+                <encryption>
+                  <member>aes-128-cbc</member>
+                  </encryption>
+                <hash>
+                  <member>sha256</member>
+                  </hash>
+                <dh-group>
+                  <member>group19</member>
+                  </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                  </lifetime>
+                </entry>
+              <entry name="Suite-B-GCM-256">
+                <encryption>
+                  <member>aes-256-cbc</member>
+                  </encryption>
+                <hash>
+                  <member>sha384</member>
+                  </hash>
+                <dh-group>
+                  <member>group20</member>
+                  </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                  </lifetime>
+                </entry>
+              </ike-crypto-profiles>
+            <ipsec-crypto-profiles>
+              <entry name="default">
+                <esp>
+                  <encryption>
+                    <member>aes-128-cbc</member>
+                    <member>3des</member>
+                    </encryption>
+                  <authentication>
+                    <member>sha1</member>
+                    </authentication>
+                  </esp>
+                <dh-group>group2</dh-group>
+                <lifetime>
+                  <hours>1</hours>
+                  </lifetime>
+                </entry>
+              <entry name="Suite-B-GCM-128">
+                <esp>
+                  <encryption>
+                    <member>aes-128-gcm</member>
+                    </encryption>
+                  <authentication>
+                    <member>none</member>
+                    </authentication>
+                  </esp>
+                <dh-group>group19</dh-group>
+                <lifetime>
+                  <hours>1</hours>
+                  </lifetime>
+                </entry>
+              <entry name="Suite-B-GCM-256">
+                <esp>
+                  <encryption>
+                    <member>aes-256-gcm</member>
+                    </encryption>
+                  <authentication>
+                    <member>none</member>
+                    </authentication>
+                  </esp>
+                <dh-group>group20</dh-group>
+                <lifetime>
+                  <hours>1</hours>
+                  </lifetime>
+                </entry>
+              </ipsec-crypto-profiles>
+            <global-protect-app-crypto-profiles>
+              <entry name="default">
+                <encryption>
+                  <member>aes-128-cbc</member>
+                  </encryption>
+                <authentication>
+                  <member>sha1</member>
+                  </authentication>
+                </entry>
+              </global-protect-app-crypto-profiles>
+            </crypto-profiles>
+          </ike>
+        <qos>
+          <profile>
+            <entry name="default">
+              <class-bandwidth-type>
+                <mbps>
+                  <class>
+                    <entry name="class1">
+                      <priority>real-time</priority>
+                      </entry>
+                    <entry name="class2">
+                      <priority>high</priority>
+                      </entry>
+                    <entry name="class3">
+                      <priority>high</priority>
+                      </entry>
+                    <entry name="class4">
+                      <priority>medium</priority>
+                      </entry>
+                    <entry name="class5">
+                      <priority>medium</priority>
+                      </entry>
+                    <entry name="class6">
+                      <priority>low</priority>
+                      </entry>
+                    <entry name="class7">
+                      <priority>low</priority>
+                      </entry>
+                    <entry name="class8">
+                      <priority>low</priority>
+                      </entry>
+                    </class>
+                  </mbps>
+                </class-bandwidth-type>
+              </entry>
+            </profile>
+          </qos>
+        <virtual-router>
+          <entry name="default">
+            <interface>
+              <member>ethernet1/1</member>
+              <member>ethernet1/2</member>
+              <member>ethernet1/3</member>
+              <member>ethernet1/4</member>
+              <member>ethernet1/5</member>
+              <member>ethernet1/8</member>
+              <member>ethernet1/7.10</member>
+              <member>ethernet1/7.20</member>
+              <member>loopback.1</member>
+              <member>tunnel.1</member>
+              </interface>
+            <ecmp>
+              <enable>yes</enable>
+              <max-path>3</max-path>
+              <symmetric-return>yes</symmetric-return>
+              <algorithm>
+                <ip-hash>
+                  <src-only>no</src-only>
+                  <use-port>yes</use-port>
+                  </ip-hash>
+                </algorithm>
+              </ecmp>
+            <admin-dists>
+              <static>15</static>
+              <static-ipv6>15</static-ipv6>
+              </admin-dists>
+            <routing-table>
+              <ip>
+                <static-route>
+                  <entry name="default-isp-a">
+                    <destination>0.0.0.0/0</destination>
+                    <interface>ethernet1/1</interface>
+                    <nexthop>
+                      <ip-address>203.0.113.1</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    <bfd>
+                      <profile>bfd-static</profile>
+                      </bfd>
+                    <path-monitor>
+                      <enable>yes</enable>
+                      <failure-condition>all</failure-condition>
+                      <hold-time>3</hold-time>
+                      <monitor-destinations>
+                        <entry name="probe-google">
+                          <enable>yes</enable>
+                          <source>203.0.113.2/30</source>
+                          <destination>8.8.8.8</destination>
+                          <interval>5</interval>
+                          <count>4</count>
+                          </entry>
+                        <entry name="probe-cf">
+                          <enable>yes</enable>
+                          <source>203.0.113.2/30</source>
+                          <destination>1.1.1.1</destination>
+                          <interval>3</interval>
+                          <count>5</count>
+                          </entry>
+                        </monitor-destinations>
+                      </path-monitor>
+                    </entry>
+                  <entry name="default-isp-b">
+                    <destination>0.0.0.0/0</destination>
+                    <interface>ethernet1/8</interface>
+                    <nexthop>
+                      <ip-address>198.51.100.1</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="default-mpls-float">
+                    <destination>0.0.0.0/0</destination>
+                    <interface>ethernet1/4</interface>
+                    <nexthop>
+                      <ip-address>172.16.1.1</ip-address>
+                      </nexthop>
+                    <metric>200</metric>
+                    <admin-dist>240</admin-dist>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="hq-over-vpn">
+                    <destination>10.200.0.0/16</destination>
+                    <interface>tunnel.1</interface>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="rfc1918-sink">
+                    <destination>10.0.0.0/8</destination>
+                    <nexthop>
+                      <discard />
+                      </nexthop>
+                    <metric>250</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="to-guest">
+                    <destination>192.168.50.0/24</destination>
+                    <nexthop>
+                      <next-vr>guest</next-vr>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="dmz-partner">
+                    <destination>172.30.0.0/16</destination>
+                    <interface>ethernet1/3</interface>
+                    <nexthop>
+                      <ip-address>dmz-router</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="cloud-gw-fqdn">
+                    <destination>172.31.0.0/16</destination>
+                    <interface>ethernet1/1</interface>
+                    <nexthop>
+                      <fqdn>cloud-gw</fqdn>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="lan-servers-via-core-switch">
+                    <destination>10.1.30.0/24</destination>
+                    <interface>ethernet1/2</interface>
+                    <nexthop>
+                      <ip-address>10.1.1.254</ip-address>
+                      </nexthop>
+                    <metric>50</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="mcast-rpf-only">
+                    <destination>10.99.0.0/16</destination>
+                    <interface>ethernet1/5</interface>
+                    <nexthop>
+                      <ip-address>10.1.255.2</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <multicast />
+                      </route-table>
+                    </entry>
+                  <entry name="both-ribs">
+                    <destination>10.98.0.0/16</destination>
+                    <interface>ethernet1/5</interface>
+                    <nexthop>
+                      <ip-address>10.1.255.2</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <both />
+                      </route-table>
+                    </entry>
+                  <entry name="staged-no-install">
+                    <destination>10.97.0.0/16</destination>
+                    <interface>ethernet1/5</interface>
+                    <nexthop>
+                      <ip-address>10.1.255.2</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <no-install />
+                      </route-table>
+                    </entry>
+                  </static-route>
+                </ip>
+              <ipv6>
+                <static-route>
+                  <entry name="v6-default">
+                    <destination>::/0</destination>
+                    <interface>ethernet1/8</interface>
+                    <nexthop>
+                      <ipv6-address>2001:db8:ffff::1</ipv6-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="v6-lan-servers">
+                    <destination>2001:db8:20::/48</destination>
+                    <interface>ethernet1/2</interface>
+                    <nexthop>
+                      <ipv6-address>2001:db8:10:1::fe</ipv6-address>
+                      </nexthop>
+                    <metric>20</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  </static-route>
+                </ipv6>
+              </routing-table>
+            </entry>
+          <entry name="guest">
+            <interface>
+              <member>ethernet1/6</member>
+              </interface>
+            <routing-table>
+              <ip>
+                <static-route>
+                  <entry name="default-via-main">
+                    <destination>0.0.0.0/0</destination>
+                    <nexthop>
+                      <next-vr>default</next-vr>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  </static-route>
+                </ip>
+              </routing-table>
+            </entry>
+          </virtual-router>
+        <logical-router>
+          <entry name="default">
+            <vrf>
+              <entry name="default">
+                <interface>
+                  <member>ethernet1/1</member>
+                  <member>ethernet1/2</member>
+                  <member>ethernet1/3</member>
+                  <member>ethernet1/4</member>
+                  <member>ethernet1/5</member>
+                  <member>ethernet1/8</member>
+                  <member>ethernet1/7.10</member>
+                  <member>ethernet1/7.20</member>
+                  <member>loopback.1</member>
+                  <member>tunnel.1</member>
+                  </interface>
+                <admin-dists>
+                  <static>15</static>
+                  <static-ipv6>15</static-ipv6>
+                  </admin-dists>
+                <routing-table>
+                  <ip>
+                    <static-route>
+                      <entry name="default-isp-a-ipv4-unicast">
+                        <destination>0.0.0.0/0</destination>
+                        <interface>ethernet1/1</interface>
+                        <nexthop>
+                          <ip-address>203.0.113.1</ip-address>
+                          </nexthop>
+                        <bfd>
+                          <profile>bfd-static</profile>
+                          </bfd>
+                        <path-monitor>
+                          <enable>yes</enable>
+                          <failure-condition>all</failure-condition>
+                          <hold-time>3</hold-time>
+                          <monitor-destinations>
+                            <entry name="probe-google">
+                              <enable>yes</enable>
+                              <source>203.0.113.2/30</source>
+                              <destination>8.8.8.8</destination>
+                              <interval>5</interval>
+                              <count>4</count>
+                              </entry>
+                            <entry name="probe-cf">
+                              <enable>yes</enable>
+                              <source>203.0.113.2/30</source>
+                              <destination>1.1.1.1</destination>
+                              </entry>
+                            </monitor-destinations>
+                          </path-monitor>
+                        </entry>
+                      <entry name="default-isp-b-ipv4-unicast">
+                        <destination>0.0.0.0/0</destination>
+                        <interface>ethernet1/8</interface>
+                        <nexthop>
+                          <ip-address>198.51.100.1</ip-address>
+                          </nexthop>
+                        </entry>
+                      <entry name="default-mpls-float-ipv4-unicast">
+                        <destination>0.0.0.0/0</destination>
+                        <interface>ethernet1/4</interface>
+                        <nexthop>
+                          <ip-address>172.16.1.1</ip-address>
+                          </nexthop>
+                        <admin-dist>240</admin-dist>
+                        <metric>200</metric>
+                        </entry>
+                      <entry name="hq-over-vpn-ipv4-unicast">
+                        <destination>10.200.0.0/16</destination>
+                        <interface>tunnel.1</interface>
+                        </entry>
+                      <entry name="rfc1918-sink-ipv4-unicast">
+                        <destination>10.0.0.0/8</destination>
+                        <nexthop>
+                          <discard />
+                          </nexthop>
+                        <metric>250</metric>
+                        </entry>
+                      <entry name="to-guest-ipv4-unicast">
+                        <destination>192.168.50.0/24</destination>
+                        <nexthop>
+                          <next-lr>guest</next-lr>
+                          </nexthop>
+                        </entry>
+                      <entry name="dmz-partner-ipv4-unicast">
+                        <destination>172.30.0.0/16</destination>
+                        <interface>ethernet1/3</interface>
+                        <nexthop>
+                          <ip-address>dmz-router</ip-address>
+                          </nexthop>
+                        </entry>
+                      <entry name="cloud-gw-fqdn-ipv4-unicast">
+                        <destination>172.31.0.0/16</destination>
+                        <interface>ethernet1/1</interface>
+                        <nexthop>
+                          <fqdn>cloud-gw</fqdn>
+                          </nexthop>
+                        </entry>
+                      <entry name="lan-servers-via-core-switch-ipv4-unicast">
+                        <destination>10.1.30.0/24</destination>
+                        <interface>ethernet1/2</interface>
+                        <nexthop>
+                          <ip-address>10.1.1.254</ip-address>
+                          </nexthop>
+                        <metric>50</metric>
+                        </entry>
+                      <entry name="mcast-rpf-only-ipv4-unicast">
+                        <destination>10.99.0.0/16</destination>
+                        <interface>ethernet1/5</interface>
+                        <nexthop>
+                          <ip-address>10.1.255.2</ip-address>
+                          </nexthop>
+                        </entry>
+                      <entry name="both-ribs-ipv4-unicast">
+                        <destination>10.98.0.0/16</destination>
+                        <interface>ethernet1/5</interface>
+                        <nexthop>
+                          <ip-address>10.1.255.2</ip-address>
+                          </nexthop>
+                        </entry>
+                      <entry name="staged-no-install-ipv4-unicast">
+                        <destination>10.97.0.0/16</destination>
+                        <interface>ethernet1/5</interface>
+                        <nexthop>
+                          <ip-address>10.1.255.2</ip-address>
+                          </nexthop>
+                        </entry>
+                      </static-route>
+                    </ip>
+                  <ipv6>
+                    <static-route>
+                      <entry name="v6-default-ipv6-unicast">
+                        <destination>::/0</destination>
+                        <interface>ethernet1/8</interface>
+                        <nexthop>
+                          <ipv6-address>2001:db8:ffff::1</ipv6-address>
+                          </nexthop>
+                        </entry>
+                      <entry name="v6-lan-servers-ipv6-unicast">
+                        <destination>2001:db8:20::/48</destination>
+                        <interface>ethernet1/2</interface>
+                        <nexthop>
+                          <ipv6-address>2001:db8:10:1::fe</ipv6-address>
+                          </nexthop>
+                        <metric>20</metric>
+                        </entry>
+                      </static-route>
+                    </ipv6>
+                  </routing-table>
+                <ecmp>
+                  <enable>yes</enable>
+                  <algorithm>
+                    <ip-hash>
+                      <use-port>yes</use-port>
+                      </ip-hash>
+                    </algorithm>
+                  <max-path>3</max-path>
+                  <symmetric-return>yes</symmetric-return>
+                  </ecmp>
+                </entry>
+              </vrf>
+            </entry>
+          <entry name="guest">
+            <vrf>
+              <entry name="default">
+                <interface>
+                  <member>ethernet1/6</member>
+                  </interface>
+                <routing-table>
+                  <ip>
+                    <static-route>
+                      <entry name="default-via-main-ipv4-unicast">
+                        <destination>0.0.0.0/0</destination>
+                        <nexthop>
+                          <next-lr>default</next-lr>
+                          </nexthop>
+                        </entry>
+                      </static-route>
+                    </ip>
+                  </routing-table>
+                </entry>
+              </vrf>
+            </entry>
+          </logical-router>
+        <routing-profile>
+          <filters>
+            <route-maps />
+            </filters>
+          <bfd>
+            <entry name="bfd-fast">
+              <min-tx-interval>300</min-tx-interval>
+              <min-rx-interval>300</min-rx-interval>
+              </entry>
+            <entry name="bfd-static">
+              <min-tx-interval>500</min-tx-interval>
+              <min-rx-interval>500</min-rx-interval>
+              <detection-multiplier>4</detection-multiplier>
+              </entry>
+            </bfd>
+          </routing-profile>
+        </network>
+      <deviceconfig>
+        <system>
+          <type>
+            <static />
+            </type>
+          <update-server>updates.paloaltonetworks.com</update-server>
+          <update-schedule>
+            <threats>
+              <recurring>
+                <weekly>
+                  <day-of-week>wednesday</day-of-week>
+                  <at>01:02</at>
+                  <action>download-only</action>
+                  </weekly>
+                </recurring>
+              </threats>
+            </update-schedule>
+          <timezone>UTC</timezone>
+          <service>
+            <disable-telnet>yes</disable-telnet>
+            <disable-http>yes</disable-http>
+            </service>
+          <hostname>lab-vr2lr-legacy</hostname>
+          <device-telemetry>
+            <device-health-performance>yes</device-health-performance>
+            <product-usage>yes</product-usage>
+            <threat-prevention>yes</threat-prevention>
+            <region>Americas</region>
+            </device-telemetry>
+          <ip-address>192.0.2.70</ip-address>
+          <netmask>255.255.255.0</netmask>
+          <default-gateway>192.0.2.1</default-gateway>
+          <dns-setting>
+            <servers>
+              <primary>1.1.1.1</primary>
+              <secondary>9.9.9.9</secondary>
+              </servers>
+            </dns-setting>
+          <ntp-servers>
+            <primary-ntp-server>
+              <ntp-server-address>0.pool.ntp.org</ntp-server-address>
+              <authentication-type>
+                <none />
+                </authentication-type>
+              </primary-ntp-server>
+            <secondary-ntp-server>
+              <ntp-server-address>1.pool.ntp.org</ntp-server-address>
+              <authentication-type>
+                <none />
+                </authentication-type>
+              </secondary-ntp-server>
+            </ntp-servers>
+          </system>
+        <setting>
+          <config>
+            <rematch>yes</rematch>
+            </config>
+          <management>
+            <hostname-type-in-syslog>FQDN</hostname-type-in-syslog>
+            </management>
+          <auto-mac-detect>yes</auto-mac-detect>
+          <advance-routing>yes</advance-routing>
+          <session>
+            <packet-buffer-protection-latency-alert>50</packet-buffer-protection-latency-alert>
+            <packet-buffer-protection-latency-activate>200</packet-buffer-protection-latency-activate>
+            <packet-buffer-protection-latency-max-tolerate>500</packet-buffer-protection-latency-max-tolerate>
+            <packet-buffer-protection-latency-block-countdown>500</packet-buffer-protection-latency-block-countdown>
+            </session>
+          </setting>
+        </deviceconfig>
+      <vsys>
+        <entry name="vsys1">
+          <application />
+          <application-group />
+          <zone>
+            <entry name="untrust">
+              <network>
+                <layer3>
+                  <member>ethernet1/1</member>
+                  <member>ethernet1/8</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="trust">
+              <network>
+                <layer3>
+                  <member>ethernet1/2</member>
+                  <member>ethernet1/5</member>
+                  <member>ethernet1/7.10</member>
+                  <member>ethernet1/7.20</member>
+                  <member>loopback.1</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="dmz">
+              <network>
+                <layer3>
+                  <member>ethernet1/3</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="mpls">
+              <network>
+                <layer3>
+                  <member>ethernet1/4</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="vpn">
+              <network>
+                <layer3>
+                  <member>tunnel.1</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="guest">
+              <network>
+                <layer3>
+                  <member>ethernet1/6</member>
+                  </layer3>
+                </network>
+              </entry>
+            </zone>
+          <service />
+          <service-group />
+          <schedule />
+          <rulebase />
+          <address>
+            <entry name="dmz-router">
+              <ip-netmask>10.1.2.254</ip-netmask>
+              </entry>
+            <entry name="cloud-gw">
+              <fqdn>gw.example.net</fqdn>
+              </entry>
+            </address>
+          </entry>
+        </vsys>
+      </entry>
+    </devices>
+  </config>

@@ -1,0 +1,83 @@
+<errors>
+  <conversion-errors>
+    <entry name="1" tag="orange">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/redist-profile/entry[@name='rp-ospf-to-bgp']/filter/ospf/path-type/member</source-xpath>
+      <error-code>10015</error-code>
+      <error-message>In route map, Path-Type matching is not supported when redistributing from OSPF.</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>redist-profile</protocol>
+        </metadata>
+      </entry>
+    <entry name="2" tag="orange">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/redist-profile/entry[@name='rp-ospf-to-bgp']/filter/ospf/path-type/member</source-xpath>
+      <error-code>10015</error-code>
+      <error-message>In route map, Path-Type matching is not supported when redistributing from OSPF.</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>redist-profile</protocol>
+        </metadata>
+      </entry>
+    <entry name="3" tag="orange">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/redist-profile/entry[@name='rp-ospf-to-bgp']/filter/ospf/area/member</source-xpath>
+      <error-code>10016</error-code>
+      <error-message>In route map, Area matching is not supported when redistributing from OSPF.</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>redist-profile</protocol>
+        </metadata>
+      </entry>
+    <entry name="4" tag="yellow">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/bgp/dampening-profile/entry[@name='default']</source-xpath>
+      <error-code>10000</error-code>
+      <error-message>Virtual router dampening profiles are incompatible with logical router dampening profiles due to mapping issues. The Profile is migrated with default values, but not associated with any of the peer-groups.</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>bgp</protocol>
+        </metadata>
+      </entry>
+    <entry name="5" tag="yellow">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/bgp/dampening-profile/entry[@name='damp-std']</source-xpath>
+      <error-code>10000</error-code>
+      <error-message>Virtual router dampening profiles are incompatible with logical router dampening profiles due to mapping issues. The Profile is migrated with default values, but not associated with any of the peer-groups.</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>bgp</protocol>
+        </metadata>
+      </entry>
+    <entry name="6" tag="yellow">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/bgp/policy/import/rules/entry[@name='mpls-in-prefer']/action/allow/dampening</source-xpath>
+      <error-code>10047</error-code>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>bgp</protocol>
+        </metadata>
+      </entry>
+    <entry name="7" tag="orange">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/bgp/policy/export/rules/entry[@name='to-mpls-site-only']/action/allow/update/as-path</source-xpath>
+      <error-code>10022</error-code>
+      <error-message>In Agreegate route map AS PATH update is not supported</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>bgp</protocol>
+        </metadata>
+      </entry>
+    <entry name="8" tag="orange">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/ospf/area/entry[@name='0.0.0.10']/type/stub/default-route</source-xpath>
+      <error-code>10013</error-code>
+      <error-message>For OSPF stub areas Advertise default route metric is not converted.</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>ospf</protocol>
+        </metadata>
+      </entry>
+    </conversion-errors>
+  </errors>

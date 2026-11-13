@@ -1,0 +1,2113 @@
+<config detail-version="10.2.11" urldb="paloaltonetworks" version="10.2.0">
+  <mgt-config>
+    <users>
+      <entry name="admin">
+        <phash>REDACTED</phash>
+        <permissions>
+          <role-based>
+            <superuser>yes</superuser>
+            </role-based>
+          </permissions>
+        </entry>
+      <entry name="__openconfig">
+        <phash>REDACTED</phash>
+        <permissions>
+          <role-based>
+            <deviceadmin>
+              <member>localhost.localdomain</member>
+              </deviceadmin>
+            </role-based>
+          </permissions>
+        </entry>
+      </users>
+    <password-complexity>
+      <enabled>yes</enabled>
+      <minimum-length>8</minimum-length>
+      </password-complexity>
+    </mgt-config>
+  <shared>
+    <application />
+    <application-group />
+    <service />
+    <service-group />
+    <botnet>
+      <configuration>
+        <http>
+          <dynamic-dns>
+            <enabled>yes</enabled>
+            <threshold>5</threshold>
+            </dynamic-dns>
+          <malware-sites>
+            <enabled>yes</enabled>
+            <threshold>5</threshold>
+            </malware-sites>
+          <recent-domains>
+            <enabled>yes</enabled>
+            <threshold>5</threshold>
+            </recent-domains>
+          <ip-domains>
+            <enabled>yes</enabled>
+            <threshold>10</threshold>
+            </ip-domains>
+          <executables-from-unknown-sites>
+            <enabled>yes</enabled>
+            <threshold>5</threshold>
+            </executables-from-unknown-sites>
+          </http>
+        <other-applications>
+          <irc>yes</irc>
+          </other-applications>
+        <unknown-applications>
+          <unknown-tcp>
+            <destinations-per-hour>10</destinations-per-hour>
+            <sessions-per-hour>10</sessions-per-hour>
+            <session-length>
+              <maximum-bytes>100</maximum-bytes>
+              <minimum-bytes>50</minimum-bytes>
+              </session-length>
+            </unknown-tcp>
+          <unknown-udp>
+            <destinations-per-hour>10</destinations-per-hour>
+            <sessions-per-hour>10</sessions-per-hour>
+            <session-length>
+              <maximum-bytes>100</maximum-bytes>
+              <minimum-bytes>50</minimum-bytes>
+              </session-length>
+            </unknown-udp>
+          </unknown-applications>
+        </configuration>
+      <report>
+        <topn>100</topn>
+        <scheduled>yes</scheduled>
+        </report>
+      </botnet>
+    </shared>
+  <devices>
+    <entry name="localhost.localdomain">
+      <network>
+        <interface>
+          <ethernet>
+            <entry name="ethernet1/1">
+              <layer3>
+                <ip>
+                  <entry name="203.0.113.2/30" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/2">
+              <layer3>
+                <ip>
+                  <entry name="10.1.1.1/24" />
+                  </ip>
+                <ipv6>
+                  <enabled>yes</enabled>
+                  <address>
+                    <entry name="2001:db8:10:1::1/64" />
+                    </address>
+                  </ipv6>
+                <interface-management-profile>allow-ping</interface-management-profile>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/3">
+              <layer3>
+                <ip>
+                  <entry name="10.1.2.1/24" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/4">
+              <layer3>
+                <ip>
+                  <entry name="172.16.1.2/30" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/5">
+              <layer3>
+                <ip>
+                  <entry name="10.1.255.1/30" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/6">
+              <layer3>
+                <ip>
+                  <entry name="192.168.50.1/24" />
+                  </ip>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/8">
+              <layer3>
+                <ip>
+                  <entry name="198.51.100.2/30" />
+                  </ip>
+                <ipv6>
+                  <enabled>yes</enabled>
+                  <address>
+                    <entry name="2001:db8:ffff::2/64" />
+                    </address>
+                  </ipv6>
+                </layer3>
+              </entry>
+            <entry name="ethernet1/7">
+              <layer3>
+                <units>
+                  <entry name="ethernet1/7.10">
+                    <tag>10</tag>
+                    <ip>
+                      <entry name="10.1.10.1/24" />
+                      </ip>
+                    </entry>
+                  <entry name="ethernet1/7.20">
+                    <tag>20</tag>
+                    <ip>
+                      <entry name="10.1.20.1/24" />
+                      </ip>
+                    </entry>
+                  </units>
+                </layer3>
+              </entry>
+            </ethernet>
+          <loopback>
+            <units>
+              <entry name="loopback.1">
+                <ip>
+                  <entry name="10.1.0.1/32" />
+                  </ip>
+                </entry>
+              </units>
+            </loopback>
+          <tunnel>
+            <units>
+              <entry name="tunnel.1">
+                <ip>
+                  <entry name="10.255.255.2/30" />
+                  </ip>
+                </entry>
+              </units>
+            </tunnel>
+          </interface>
+        <profiles>
+          <monitor-profile>
+            <entry name="default">
+              <interval>3</interval>
+              <threshold>5</threshold>
+              <action>wait-recover</action>
+              </entry>
+            </monitor-profile>
+          <interface-management-profile>
+            <entry name="allow-ping">
+              <ping>yes</ping>
+              </entry>
+            </interface-management-profile>
+          <bfd-profile>
+            <entry name="bfd-fast">
+              <mode>active</mode>
+              <min-tx-interval>300</min-tx-interval>
+              <min-rx-interval>300</min-rx-interval>
+              <detection-multiplier>3</detection-multiplier>
+              <hold-time>0</hold-time>
+              </entry>
+            </bfd-profile>
+          </profiles>
+        <ike>
+          <crypto-profiles>
+            <ike-crypto-profiles>
+              <entry name="default">
+                <encryption>
+                  <member>aes-128-cbc</member>
+                  <member>3des</member>
+                  </encryption>
+                <hash>
+                  <member>sha1</member>
+                  </hash>
+                <dh-group>
+                  <member>group2</member>
+                  </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                  </lifetime>
+                </entry>
+              <entry name="Suite-B-GCM-128">
+                <encryption>
+                  <member>aes-128-cbc</member>
+                  </encryption>
+                <hash>
+                  <member>sha256</member>
+                  </hash>
+                <dh-group>
+                  <member>group19</member>
+                  </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                  </lifetime>
+                </entry>
+              <entry name="Suite-B-GCM-256">
+                <encryption>
+                  <member>aes-256-cbc</member>
+                  </encryption>
+                <hash>
+                  <member>sha384</member>
+                  </hash>
+                <dh-group>
+                  <member>group20</member>
+                  </dh-group>
+                <lifetime>
+                  <hours>8</hours>
+                  </lifetime>
+                </entry>
+              </ike-crypto-profiles>
+            <ipsec-crypto-profiles>
+              <entry name="default">
+                <esp>
+                  <encryption>
+                    <member>aes-128-cbc</member>
+                    <member>3des</member>
+                    </encryption>
+                  <authentication>
+                    <member>sha1</member>
+                    </authentication>
+                  </esp>
+                <dh-group>group2</dh-group>
+                <lifetime>
+                  <hours>1</hours>
+                  </lifetime>
+                </entry>
+              <entry name="Suite-B-GCM-128">
+                <esp>
+                  <encryption>
+                    <member>aes-128-gcm</member>
+                    </encryption>
+                  <authentication>
+                    <member>none</member>
+                    </authentication>
+                  </esp>
+                <dh-group>group19</dh-group>
+                <lifetime>
+                  <hours>1</hours>
+                  </lifetime>
+                </entry>
+              <entry name="Suite-B-GCM-256">
+                <esp>
+                  <encryption>
+                    <member>aes-256-gcm</member>
+                    </encryption>
+                  <authentication>
+                    <member>none</member>
+                    </authentication>
+                  </esp>
+                <dh-group>group20</dh-group>
+                <lifetime>
+                  <hours>1</hours>
+                  </lifetime>
+                </entry>
+              </ipsec-crypto-profiles>
+            <global-protect-app-crypto-profiles>
+              <entry name="default">
+                <encryption>
+                  <member>aes-128-cbc</member>
+                  </encryption>
+                <authentication>
+                  <member>sha1</member>
+                  </authentication>
+                </entry>
+              </global-protect-app-crypto-profiles>
+            </crypto-profiles>
+          </ike>
+        <qos>
+          <profile>
+            <entry name="default">
+              <class-bandwidth-type>
+                <mbps>
+                  <class>
+                    <entry name="class1">
+                      <priority>real-time</priority>
+                      </entry>
+                    <entry name="class2">
+                      <priority>high</priority>
+                      </entry>
+                    <entry name="class3">
+                      <priority>high</priority>
+                      </entry>
+                    <entry name="class4">
+                      <priority>medium</priority>
+                      </entry>
+                    <entry name="class5">
+                      <priority>medium</priority>
+                      </entry>
+                    <entry name="class6">
+                      <priority>low</priority>
+                      </entry>
+                    <entry name="class7">
+                      <priority>low</priority>
+                      </entry>
+                    <entry name="class8">
+                      <priority>low</priority>
+                      </entry>
+                    </class>
+                  </mbps>
+                </class-bandwidth-type>
+              </entry>
+            </profile>
+          </qos>
+        <virtual-router>
+          <entry name="default">
+            <protocol>
+              <bgp>
+                <enable>yes</enable>
+                <dampening-profile>
+                  <entry name="default">
+                    <cutoff>1.25</cutoff>
+                    <reuse>0.5</reuse>
+                    <max-hold-time>900</max-hold-time>
+                    <decay-half-life-reachable>300</decay-half-life-reachable>
+                    <decay-half-life-unreachable>900</decay-half-life-unreachable>
+                    <enable>yes</enable>
+                    </entry>
+                  <entry name="damp-std">
+                    <enable>yes</enable>
+                    <cutoff>1.25</cutoff>
+                    <reuse>0.5</reuse>
+                    <max-hold-time>900</max-hold-time>
+                    <decay-half-life-reachable>300</decay-half-life-reachable>
+                    <decay-half-life-unreachable>900</decay-half-life-unreachable>
+                    </entry>
+                  </dampening-profile>
+                <router-id>10.1.0.1</router-id>
+                <local-as>65101</local-as>
+                <install-route>yes</install-route>
+                <reject-default-route>no</reject-default-route>
+                <allow-redist-default-route>no</allow-redist-default-route>
+                <ecmp-multi-as>no</ecmp-multi-as>
+                <enforce-first-as>yes</enforce-first-as>
+                <routing-options>
+                  <as-format>4-byte</as-format>
+                  <default-local-preference>100</default-local-preference>
+                  <graceful-restart>
+                    <enable>yes</enable>
+                    <stale-route-time>120</stale-route-time>
+                    <max-peer-restart-time>120</max-peer-restart-time>
+                    <local-restart-time>120</local-restart-time>
+                    </graceful-restart>
+                  <med>
+                    <always-compare-med>yes</always-compare-med>
+                    <deterministic-med-comparison>yes</deterministic-med-comparison>
+                    </med>
+                  <aggregate>
+                    <aggregate-med>yes</aggregate-med>
+                    </aggregate>
+                  </routing-options>
+                <auth-profile>
+                  <entry name="bgp-md5">
+                    <secret>-AQ==3lBpQ5925bJ94C2r1LXg9IuWZgg=OxLj/nxWUioaE3p/zO1qeg==</secret>
+                    </entry>
+                  </auth-profile>
+                <peer-group>
+                  <entry name="MPLS">
+                    <enable>yes</enable>
+                    <aggregated-confed-as-path>yes</aggregated-confed-as-path>
+                    <soft-reset-with-stored-info>no</soft-reset-with-stored-info>
+                    <type>
+                      <ebgp>
+                        <remove-private-as>yes</remove-private-as>
+                        <import-nexthop>original</import-nexthop>
+                        <export-nexthop>resolve</export-nexthop>
+                        </ebgp>
+                      </type>
+                    <peer>
+                      <entry name="mpls-pe">
+                        <enable>yes</enable>
+                        <peer-as>65000</peer-as>
+                        <local-address>
+                          <interface>ethernet1/4</interface>
+                          <ip>172.16.1.2/30</ip>
+                          </local-address>
+                        <peer-address>
+                          <ip>172.16.1.1</ip>
+                          </peer-address>
+                        <connection-options>
+                          <authentication>bgp-md5</authentication>
+                          <keep-alive-interval>30</keep-alive-interval>
+                          <hold-time>90</hold-time>
+                          <multihop>0</multihop>
+                          </connection-options>
+                        <bfd>
+                          <profile>bfd-fast</profile>
+                          </bfd>
+                        <max-prefixes>1000</max-prefixes>
+                        </entry>
+                      </peer>
+                    </entry>
+                  <entry name="HQ-VPN">
+                    <enable>yes</enable>
+                    <type>
+                      <ibgp>
+                        <export-nexthop>use-self</export-nexthop>
+                        </ibgp>
+                      </type>
+                    <peer>
+                      <entry name="hq-hub">
+                        <enable>yes</enable>
+                        <peer-as>65101</peer-as>
+                        <local-address>
+                          <interface>loopback.1</interface>
+                          <ip>10.1.0.1/32</ip>
+                          </local-address>
+                        <peer-address>
+                          <ip>10.255.0.1</ip>
+                          </peer-address>
+                        <connection-options>
+                          <multihop>2</multihop>
+                          <keep-alive-interval>10</keep-alive-interval>
+                          <hold-time>30</hold-time>
+                          </connection-options>
+                        </entry>
+                      </peer>
+                    </entry>
+                  </peer-group>
+                <policy>
+                  <import>
+                    <rules>
+                      <entry name="mpls-in-prefer">
+                        <enable>yes</enable>
+                        <used-by>
+                          <member>MPLS</member>
+                          </used-by>
+                        <match>
+                          <address-prefix>
+                            <entry name="10.0.0.0/8">
+                              <exact>no</exact>
+                              </entry>
+                            </address-prefix>
+                          <as-path>
+                            <regex>_65000$</regex>
+                            </as-path>
+                          </match>
+                        <action>
+                          <allow>
+                            <dampening>damp-std</dampening>
+                            <update>
+                              <local-preference>200</local-preference>
+                              <community>
+                                <append>
+                                  <member>65101:100</member>
+                                  </append>
+                                </community>
+                              </update>
+                            </allow>
+                          </action>
+                        </entry>
+                      <entry name="mpls-in-deny-default">
+                        <enable>yes</enable>
+                        <used-by>
+                          <member>MPLS</member>
+                          </used-by>
+                        <match>
+                          <address-prefix>
+                            <entry name="0.0.0.0/0">
+                              <exact>yes</exact>
+                              </entry>
+                            </address-prefix>
+                          </match>
+                        <action>
+                          <deny />
+                          </action>
+                        </entry>
+                      </rules>
+                    </import>
+                  <export>
+                    <rules>
+                      <entry name="to-mpls-site-only">
+                        <enable>yes</enable>
+                        <used-by>
+                          <member>MPLS</member>
+                          </used-by>
+                        <match>
+                          <address-prefix>
+                            <entry name="10.1.0.0/16">
+                              <exact>no</exact>
+                              </entry>
+                            </address-prefix>
+                          </match>
+                        <action>
+                          <allow>
+                            <update>
+                              <as-path>
+                                <prepend>2</prepend>
+                                </as-path>
+                              <med>50</med>
+                              </update>
+                            </allow>
+                          </action>
+                        </entry>
+                      </rules>
+                    </export>
+                  <conditional-advertisement>
+                    <policy>
+                      <entry name="adv-if-hq-down">
+                        <enable>yes</enable>
+                        <used-by>
+                          <member>MPLS</member>
+                          </used-by>
+                        <non-exist-filters>
+                          <entry name="hq-route">
+                            <enable>yes</enable>
+                            <match>
+                              <address-prefix>
+                                <entry name="10.200.0.0/16" />
+                                </address-prefix>
+                              </match>
+                            </entry>
+                          </non-exist-filters>
+                        <advertise-filters>
+                          <entry name="site">
+                            <enable>yes</enable>
+                            <match>
+                              <address-prefix>
+                                <entry name="10.1.0.0/16" />
+                                </address-prefix>
+                              </match>
+                            </entry>
+                          </advertise-filters>
+                        </entry>
+                      </policy>
+                    </conditional-advertisement>
+                  <aggregation>
+                    <address>
+                      <entry name="site-agg">
+                        <prefix>10.1.0.0/16</prefix>
+                        <enable>yes</enable>
+                        <summary>yes</summary>
+                        <as-set>no</as-set>
+                        </entry>
+                      </address>
+                    </aggregation>
+                  </policy>
+                <redist-rules>
+                  <entry name="rp-connected">
+                    <enable>yes</enable>
+                    <set-origin>incomplete</set-origin>
+                    <metric>10</metric>
+                    <address-family-identifier>ipv4</address-family-identifier>
+                    </entry>
+                  <entry name="rp-ospf-to-bgp">
+                    <enable>yes</enable>
+                    <set-origin>igp</set-origin>
+                    <set-community>
+                      <member>65101:200</member>
+                      </set-community>
+                    <address-family-identifier>ipv4</address-family-identifier>
+                    </entry>
+                  </redist-rules>
+                </bgp>
+              <redist-profile>
+                <entry name="rp-connected">
+                  <priority>10</priority>
+                  <filter>
+                    <type>
+                      <member>connect</member>
+                      </type>
+                    <destination>
+                      <member>10.1.0.0/16</member>
+                      </destination>
+                    </filter>
+                  <action>
+                    <redist />
+                    </action>
+                  </entry>
+                <entry name="rp-static">
+                  <priority>20</priority>
+                  <filter>
+                    <type>
+                      <member>static</member>
+                      </type>
+                    <destination>
+                      <member>10.200.0.0/16</member>
+                      </destination>
+                    </filter>
+                  <action>
+                    <redist />
+                    </action>
+                  </entry>
+                <entry name="rp-ospf-to-bgp">
+                  <priority>30</priority>
+                  <filter>
+                    <type>
+                      <member>ospf</member>
+                      </type>
+                    <ospf>
+                      <area>
+                        <member>0.0.0.0</member>
+                        </area>
+                      <path-type>
+                        <member>intra-area</member>
+                        <member>inter-area</member>
+                        </path-type>
+                      </ospf>
+                    </filter>
+                  <action>
+                    <redist />
+                    </action>
+                  </entry>
+                <entry name="rp-no-default">
+                  <priority>5</priority>
+                  <filter>
+                    <destination>
+                      <member>0.0.0.0/0</member>
+                      </destination>
+                    </filter>
+                  <action>
+                    <no-redist />
+                    </action>
+                  </entry>
+                </redist-profile>
+              <ospf>
+                <enable>yes</enable>
+                <router-id>10.1.0.1</router-id>
+                <reject-default-route>yes</reject-default-route>
+                <allow-redist-default-route>no</allow-redist-default-route>
+                <rfc1583>no</rfc1583>
+                <auth-profile>
+                  <entry name="ospf-md5">
+                    <md5>
+                      <entry name="1">
+                        <key>-AQ==loAPsGcwh7U+7Z19ytaQoegbLx0=/u3O7ot7Y5UlLRi7woD9Jw==</key>
+                        <preferred>yes</preferred>
+                        </entry>
+                      </md5>
+                    </entry>
+                  </auth-profile>
+                <area>
+                  <entry name="0.0.0.0">
+                    <type>
+                      <normal />
+                      </type>
+                    <interface>
+                      <entry name="ethernet1/5">
+                        <enable>yes</enable>
+                        <passive>no</passive>
+                        <link-type>
+                          <p2p />
+                          </link-type>
+                        <metric>10</metric>
+                        <priority>1</priority>
+                        <hello-interval>10</hello-interval>
+                        <dead-counts>4</dead-counts>
+                        <retransmit-interval>5</retransmit-interval>
+                        <transit-delay>1</transit-delay>
+                        <authentication>ospf-md5</authentication>
+                        <bfd>
+                          <profile>bfd-fast</profile>
+                          </bfd>
+                        </entry>
+                      <entry name="loopback.1">
+                        <enable>yes</enable>
+                        <passive>yes</passive>
+                        <link-type>
+                          <broadcast />
+                          </link-type>
+                        <metric>1</metric>
+                        </entry>
+                      </interface>
+                    </entry>
+                  <entry name="0.0.0.10">
+                    <type>
+                      <stub>
+                        <accept-summary>no</accept-summary>
+                        <default-route>
+                          <advertise>
+                            <metric>10</metric>
+                            </advertise>
+                          </default-route>
+                        </stub>
+                      </type>
+                    <interface>
+                      <entry name="ethernet1/2">
+                        <enable>yes</enable>
+                        <passive>yes</passive>
+                        <link-type>
+                          <broadcast />
+                          </link-type>
+                        <metric>10</metric>
+                        </entry>
+                      </interface>
+                    <range>
+                      <entry name="10.1.0.0/16">
+                        <advertise />
+                        </entry>
+                      </range>
+                    </entry>
+                  </area>
+                <export-rules>
+                  <entry name="rp-static">
+                    <new-path-type>ext-2</new-path-type>
+                    <metric>20</metric>
+                    </entry>
+                  <entry name="rp-connected">
+                    <new-path-type>ext-1</new-path-type>
+                    <new-tag>101</new-tag>
+                    </entry>
+                  </export-rules>
+                <timers>
+                  <spf-calculation-delay>5</spf-calculation-delay>
+                  <lsa-interval>5</lsa-interval>
+                  </timers>
+                <graceful-restart>
+                  <enable>yes</enable>
+                  <grace-period>120</grace-period>
+                  </graceful-restart>
+                </ospf>
+              </protocol>
+            <interface>
+              <member>ethernet1/1</member>
+              <member>ethernet1/2</member>
+              <member>ethernet1/3</member>
+              <member>ethernet1/4</member>
+              <member>ethernet1/5</member>
+              <member>ethernet1/8</member>
+              <member>ethernet1/7.10</member>
+              <member>ethernet1/7.20</member>
+              <member>loopback.1</member>
+              <member>tunnel.1</member>
+              </interface>
+            <ecmp>
+              <enable>yes</enable>
+              <max-path>2</max-path>
+              <symmetric-return>yes</symmetric-return>
+              <algorithm>
+                <ip-hash>
+                  <src-only>no</src-only>
+                  <use-port>yes</use-port>
+                  </ip-hash>
+                </algorithm>
+              </ecmp>
+            <admin-dists>
+              <static>10</static>
+              <static-ipv6>10</static-ipv6>
+              <ospf-int>30</ospf-int>
+              <ospf-ext>110</ospf-ext>
+              <ibgp>200</ibgp>
+              <ebgp>20</ebgp>
+              </admin-dists>
+            <routing-table>
+              <ipv6>
+                <static-route>
+                  <entry name="v6-default">
+                    <destination>::/0</destination>
+                    <interface>ethernet1/8</interface>
+                    <nexthop>
+                      <ipv6-address>2001:db8:ffff::1</ipv6-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  </static-route>
+                </ipv6>
+              <ip>
+                <static-route>
+                  <entry name="default-isp-a">
+                    <destination>0.0.0.0/0</destination>
+                    <interface>ethernet1/1</interface>
+                    <nexthop>
+                      <ip-address>203.0.113.1</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    <bfd>
+                      <profile>bfd-fast</profile>
+                      </bfd>
+                    <path-monitor>
+                      <enable>yes</enable>
+                      <failure-condition>any</failure-condition>
+                      <hold-time>2</hold-time>
+                      <monitor-destinations>
+                        <entry name="isp-a-probe">
+                          <enable>yes</enable>
+                          <source>203.0.113.2/30</source>
+                          <destination>8.8.8.8</destination>
+                          <interval>3</interval>
+                          <count>5</count>
+                          </entry>
+                        </monitor-destinations>
+                      </path-monitor>
+                    </entry>
+                  <entry name="default-isp-b">
+                    <destination>0.0.0.0/0</destination>
+                    <interface>ethernet1/8</interface>
+                    <nexthop>
+                      <ip-address>198.51.100.1</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="default-mpls-float">
+                    <destination>0.0.0.0/0</destination>
+                    <interface>ethernet1/4</interface>
+                    <nexthop>
+                      <ip-address>172.16.1.1</ip-address>
+                      </nexthop>
+                    <metric>200</metric>
+                    <admin-dist>240</admin-dist>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="hq-over-vpn">
+                    <destination>10.200.0.0/16</destination>
+                    <interface>tunnel.1</interface>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="rfc1918-sink">
+                    <destination>10.0.0.0/8</destination>
+                    <nexthop>
+                      <discard />
+                      </nexthop>
+                    <metric>250</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="to-guest">
+                    <destination>192.168.50.0/24</destination>
+                    <nexthop>
+                      <next-vr>guest</next-vr>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  <entry name="mcast-rpf">
+                    <destination>10.99.0.0/16</destination>
+                    <interface>ethernet1/5</interface>
+                    <nexthop>
+                      <ip-address>10.1.255.2</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <multicast />
+                      </route-table>
+                    </entry>
+                  <entry name="dmz-partner">
+                    <destination>172.30.0.0/16</destination>
+                    <interface>ethernet1/3</interface>
+                    <nexthop>
+                      <ip-address>dmz-router</ip-address>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  </static-route>
+                </ip>
+              </routing-table>
+            </entry>
+          <entry name="guest">
+            <interface>
+              <member>ethernet1/6</member>
+              </interface>
+            <routing-table>
+              <ip>
+                <static-route>
+                  <entry name="default-via-main">
+                    <destination>0.0.0.0/0</destination>
+                    <nexthop>
+                      <next-vr>default</next-vr>
+                      </nexthop>
+                    <metric>10</metric>
+                    <route-table>
+                      <unicast />
+                      </route-table>
+                    </entry>
+                  </static-route>
+                </ip>
+              </routing-table>
+            </entry>
+          </virtual-router>
+        <logical-router>
+          <entry name="default">
+            <vrf>
+              <entry name="default">
+                <interface>
+                  <member>ethernet1/1</member>
+                  <member>ethernet1/2</member>
+                  <member>ethernet1/3</member>
+                  <member>ethernet1/4</member>
+                  <member>ethernet1/5</member>
+                  <member>ethernet1/8</member>
+                  <member>ethernet1/7.10</member>
+                  <member>ethernet1/7.20</member>
+                  <member>loopback.1</member>
+                  <member>tunnel.1</member>
+                  </interface>
+                <admin-dists />
+                <rib-filter>
+                  <ipv4>
+                    <ospf>
+                      <route-map>default-reject-default-route-ospf-redist-rm</route-map>
+                      </ospf>
+                    </ipv4>
+                  </rib-filter>
+                <bgp>
+                  <enable>yes</enable>
+                  <router-id>10.1.0.1</router-id>
+                  <local-as>65101</local-as>
+                  <install-route>yes</install-route>
+                  <med>
+                    <always-compare-med>yes</always-compare-med>
+                    </med>
+                  <graceful-restart>
+                    <enable>yes</enable>
+                    </graceful-restart>
+                  <peer-group>
+                    <entry name="MPLS">
+                      <enable>yes</enable>
+                      <type>
+                        <ebgp />
+                        </type>
+                      <address-family>
+                        <ipv4>default-MPLS-ipv4-unicast</ipv4>
+                        </address-family>
+                      <filtering-profile>
+                        <ipv4>MPLS-ipv4-fpl</ipv4>
+                        </filtering-profile>
+                      <connection-options>
+                        <dampening>default-MPLS-dp</dampening>
+                        </connection-options>
+                      <peer>
+                        <entry name="mpls-pe">
+                          <enable>yes</enable>
+                          <peer-as>65000</peer-as>
+                          <inherit>
+                            <no>
+                              <address-family>
+                                <ipv4>default-mpls-pe-ipv4-unicast</ipv4>
+                                </address-family>
+                              <filtering-profile>
+                                <ipv4>mpls-pe-ipv4-fpl</ipv4>
+                                </filtering-profile>
+                              </no>
+                            </inherit>
+                          <local-address>
+                            <interface>ethernet1/4</interface>
+                            <ip>172.16.1.2/30</ip>
+                            </local-address>
+                          <peer-address>
+                            <ip>172.16.1.1</ip>
+                            </peer-address>
+                          <connection-options>
+                            <timers>mpls-pe-tm</timers>
+                            <multihop>0</multihop>
+                            <authentication>default-bgp-md5</authentication>
+                            </connection-options>
+                          <bfd>
+                            <profile>bfd-fast</profile>
+                            </bfd>
+                          </entry>
+                        </peer>
+                      </entry>
+                    <entry name="HQ-VPN">
+                      <enable>yes</enable>
+                      <type>
+                        <ibgp />
+                        </type>
+                      <address-family>
+                        <ipv4>default-HQ-VPN-ipv4-unicast</ipv4>
+                        </address-family>
+                      <connection-options />
+                      <peer>
+                        <entry name="hq-hub">
+                          <enable>yes</enable>
+                          <peer-as>65101</peer-as>
+                          <inherit>
+                            <no>
+                              <address-family>
+                                <ipv4>default-hq-hub-ipv4-unicast</ipv4>
+                                </address-family>
+                              </no>
+                            </inherit>
+                          <local-address>
+                            <interface>loopback.1</interface>
+                            <ip>10.1.0.1/32</ip>
+                            </local-address>
+                          <peer-address>
+                            <ip>10.255.0.1</ip>
+                            </peer-address>
+                          <connection-options>
+                            <timers>hq-hub-tm</timers>
+                            <multihop>2</multihop>
+                            </connection-options>
+                          </entry>
+                        </peer>
+                      </entry>
+                    </peer-group>
+                  <aggregate-routes>
+                    <entry name="site-agg">
+                      <enable>yes</enable>
+                      <summary-only>yes</summary-only>
+                      <type>
+                        <ipv4>
+                          <summary-prefix>10.1.0.0/16</summary-prefix>
+                          </ipv4>
+                        </type>
+                      </entry>
+                    </aggregate-routes>
+                  <redistribution-profile>
+                    <ipv4>
+                      <unicast>default-redist-ipv4-bgp</unicast>
+                      </ipv4>
+                    </redistribution-profile>
+                  </bgp>
+                <routing-table>
+                  <ip>
+                    <static-route>
+                      <entry name="default-isp-a-ipv4-unicast">
+                        <destination>0.0.0.0/0</destination>
+                        <interface>ethernet1/1</interface>
+                        <nexthop>
+                          <ip-address>203.0.113.1</ip-address>
+                          </nexthop>
+                        <bfd>
+                          <profile>bfd-fast</profile>
+                          </bfd>
+                        <path-monitor>
+                          <enable>yes</enable>
+                          <hold-time>2</hold-time>
+                          <monitor-destinations>
+                            <entry name="isp-a-probe">
+                              <enable>yes</enable>
+                              <source>203.0.113.2/30</source>
+                              <destination>8.8.8.8</destination>
+                              </entry>
+                            </monitor-destinations>
+                          </path-monitor>
+                        </entry>
+                      <entry name="default-isp-b-ipv4-unicast">
+                        <destination>0.0.0.0/0</destination>
+                        <interface>ethernet1/8</interface>
+                        <nexthop>
+                          <ip-address>198.51.100.1</ip-address>
+                          </nexthop>
+                        </entry>
+                      <entry name="default-mpls-float-ipv4-unicast">
+                        <destination>0.0.0.0/0</destination>
+                        <interface>ethernet1/4</interface>
+                        <nexthop>
+                          <ip-address>172.16.1.1</ip-address>
+                          </nexthop>
+                        <admin-dist>240</admin-dist>
+                        <metric>200</metric>
+                        </entry>
+                      <entry name="hq-over-vpn-ipv4-unicast">
+                        <destination>10.200.0.0/16</destination>
+                        <interface>tunnel.1</interface>
+                        </entry>
+                      <entry name="rfc1918-sink-ipv4-unicast">
+                        <destination>10.0.0.0/8</destination>
+                        <nexthop>
+                          <discard />
+                          </nexthop>
+                        <metric>250</metric>
+                        </entry>
+                      <entry name="to-guest-ipv4-unicast">
+                        <destination>192.168.50.0/24</destination>
+                        <nexthop>
+                          <next-lr>guest</next-lr>
+                          </nexthop>
+                        </entry>
+                      <entry name="mcast-rpf-ipv4-unicast">
+                        <destination>10.99.0.0/16</destination>
+                        <interface>ethernet1/5</interface>
+                        <nexthop>
+                          <ip-address>10.1.255.2</ip-address>
+                          </nexthop>
+                        </entry>
+                      <entry name="dmz-partner-ipv4-unicast">
+                        <destination>172.30.0.0/16</destination>
+                        <interface>ethernet1/3</interface>
+                        <nexthop>
+                          <ip-address>dmz-router</ip-address>
+                          </nexthop>
+                        </entry>
+                      </static-route>
+                    </ip>
+                  <ipv6>
+                    <static-route>
+                      <entry name="v6-default-ipv6-unicast">
+                        <destination>::/0</destination>
+                        <interface>ethernet1/8</interface>
+                        <nexthop>
+                          <ipv6-address>2001:db8:ffff::1</ipv6-address>
+                          </nexthop>
+                        </entry>
+                      </static-route>
+                    </ipv6>
+                  </routing-table>
+                <ospf>
+                  <router-id>10.1.0.1</router-id>
+                  <enable>yes</enable>
+                  <spf-timer>default-spf-tp</spf-timer>
+                  <redistribution-profile>default-redist-ipv4-ospf</redistribution-profile>
+                  <area>
+                    <entry name="0.0.0.0">
+                      <type>
+                        <normal />
+                        </type>
+                      <interface>
+                        <entry name="ethernet1/5">
+                          <enable>yes</enable>
+                          <link-type>
+                            <p2p />
+                            </link-type>
+                          <authentication>default-ospf-md5-ap</authentication>
+                          <bfd>
+                            <profile>bfd-fast</profile>
+                            </bfd>
+                          <timing>default-ethernet1-5-if-tp</timing>
+                          </entry>
+                        <entry name="loopback.1">
+                          <enable>yes</enable>
+                          <passive>yes</passive>
+                          <link-type>
+                            <broadcast />
+                            </link-type>
+                          <metric>1</metric>
+                          <timing>default-loopback.1-if-tp</timing>
+                          </entry>
+                        </interface>
+                      </entry>
+                    <entry name="0.0.0.10">
+                      <type>
+                        <stub>
+                          <no-summary>yes</no-summary>
+                          </stub>
+                        </type>
+                      <range>
+                        <entry name="10.1.0.0/16">
+                          <advertise>yes</advertise>
+                          </entry>
+                        </range>
+                      <interface>
+                        <entry name="ethernet1/2">
+                          <enable>yes</enable>
+                          <passive>yes</passive>
+                          <link-type>
+                            <broadcast />
+                            </link-type>
+                          <timing>default-ethernet1-2-if-tp</timing>
+                          </entry>
+                        </interface>
+                      </entry>
+                    </area>
+                  <graceful-restart />
+                  </ospf>
+                <ecmp>
+                  <enable>yes</enable>
+                  <algorithm>
+                    <ip-hash>
+                      <use-port>yes</use-port>
+                      </ip-hash>
+                    </algorithm>
+                  <symmetric-return>yes</symmetric-return>
+                  </ecmp>
+                </entry>
+              </vrf>
+            </entry>
+          <entry name="guest">
+            <vrf>
+              <entry name="default">
+                <interface>
+                  <member>ethernet1/6</member>
+                  </interface>
+                <routing-table>
+                  <ip>
+                    <static-route>
+                      <entry name="default-via-main-ipv4-unicast">
+                        <destination>0.0.0.0/0</destination>
+                        <nexthop>
+                          <next-lr>default</next-lr>
+                          </nexthop>
+                        </entry>
+                      </static-route>
+                    </ip>
+                  </routing-table>
+                </entry>
+              </vrf>
+            </entry>
+          </logical-router>
+        <routing-profile>
+          <bgp name="default-bgp-rp">
+            <auth-profile>
+              <entry name="default-bgp-md5">
+                <secret>-AQ==3lBpQ5925bJ94C2r1LXg9IuWZgg=OxLj/nxWUioaE3p/zO1qeg==</secret>
+                </entry>
+              </auth-profile>
+            <timer-profile>
+              <entry name="mpls-pe-tm" />
+              <entry name="hq-hub-tm">
+                <keep-alive-interval>10</keep-alive-interval>
+                <hold-time>30</hold-time>
+                </entry>
+              </timer-profile>
+            <address-family-profile>
+              <entry name="ipv4-unicast-default">
+                <ipv4>
+                  <unicast>
+                    <enable>yes</enable>
+                    <soft-reconfig-with-stored-info>no</soft-reconfig-with-stored-info>
+                    <maximum-prefix>
+                      <action>
+                        <warning-only />
+                        </action>
+                      </maximum-prefix>
+                    </unicast>
+                  </ipv4>
+                </entry>
+              <entry name="ipv4-multicast-default">
+                <ipv4>
+                  <multicast>
+                    <enable>yes</enable>
+                    <soft-reconfig-with-stored-info>no</soft-reconfig-with-stored-info>
+                    <maximum-prefix>
+                      <action>
+                        <warning-only />
+                        </action>
+                      </maximum-prefix>
+                    </multicast>
+                  </ipv4>
+                </entry>
+              <entry name="ipv6-unicast-default">
+                <ipv6>
+                  <unicast>
+                    <enable>yes</enable>
+                    <soft-reconfig-with-stored-info>no</soft-reconfig-with-stored-info>
+                    <maximum-prefix>
+                      <action>
+                        <warning-only />
+                        </action>
+                      </maximum-prefix>
+                    </unicast>
+                  </ipv6>
+                </entry>
+              <entry name="default-mpls-pe-ipv4-unicast">
+                <ipv4>
+                  <unicast>
+                    <enable>yes</enable>
+                    <soft-reconfig-with-stored-info>no</soft-reconfig-with-stored-info>
+                    <maximum-prefix>
+                      <action>
+                        <warning-only />
+                        </action>
+                      </maximum-prefix>
+                    </unicast>
+                  </ipv4>
+                </entry>
+              <entry name="default-MPLS-ipv4-unicast">
+                <ipv4>
+                  <unicast>
+                    <enable>yes</enable>
+                    <soft-reconfig-with-stored-info>no</soft-reconfig-with-stored-info>
+                    <maximum-prefix>
+                      <action>
+                        <warning-only />
+                        </action>
+                      </maximum-prefix>
+                    <remove-private-AS>
+                      <all />
+                      </remove-private-AS>
+                    </unicast>
+                  </ipv4>
+                </entry>
+              <entry name="default-hq-hub-ipv4-unicast">
+                <ipv4>
+                  <unicast>
+                    <enable>yes</enable>
+                    <soft-reconfig-with-stored-info>no</soft-reconfig-with-stored-info>
+                    <maximum-prefix>
+                      <action>
+                        <warning-only />
+                        </action>
+                      </maximum-prefix>
+                    <next-hop>
+                      <self />
+                      </next-hop>
+                    </unicast>
+                  </ipv4>
+                </entry>
+              <entry name="default-HQ-VPN-ipv4-unicast">
+                <ipv4>
+                  <unicast>
+                    <enable>yes</enable>
+                    <soft-reconfig-with-stored-info>no</soft-reconfig-with-stored-info>
+                    <maximum-prefix>
+                      <action>
+                        <warning-only />
+                        </action>
+                      </maximum-prefix>
+                    <next-hop>
+                      <self />
+                      </next-hop>
+                    </unicast>
+                  </ipv4>
+                </entry>
+              </address-family-profile>
+            <redistribution-profile>
+              <entry name="default-redist-ipv4-bgp">
+                <ipv4>
+                  <unicast>
+                    <connected>
+                      <enable>yes</enable>
+                      <route-map>default-ipv4-connected-to-bgp</route-map>
+                      </connected>
+                    <ospf>
+                      <enable>yes</enable>
+                      <route-map>default-ipv4-ospf-to-bgp</route-map>
+                      </ospf>
+                    </unicast>
+                  </ipv4>
+                </entry>
+              </redistribution-profile>
+            <filtering-profile>
+              <entry name="MPLS-ipv4-fpl">
+                <ipv4>
+                  <unicast>
+                    <route-maps>
+                      <inbound>MPLS-ipv4-in-rm</inbound>
+                      <outbound>MPLS-ipv4-out-rm</outbound>
+                      </route-maps>
+                    <conditional-advertisement>
+                      <non-exist>
+                        <advertise-map>MPLS-ipv4-unicast-cond-adv-rm</advertise-map>
+                        <non-exist-map>MPLS-ipv4-unicast-cond-ne-rm</non-exist-map>
+                        </non-exist>
+                      </conditional-advertisement>
+                    </unicast>
+                  <multicast />
+                  </ipv4>
+                </entry>
+              <entry name="mpls-pe-ipv4-fpl">
+                <ipv4>
+                  <unicast>
+                    <route-maps>
+                      <inbound>mpls-pe-ipv4-in-rm</inbound>
+                      <outbound>mpls-pe-ipv4-out-rm</outbound>
+                      </route-maps>
+                    <conditional-advertisement>
+                      <non-exist>
+                        <advertise-map>mpls-pe-ipv4-unicast-cond-adv-rm</advertise-map>
+                        <non-exist-map>mpls-pe-ipv4-unicast-cond-ne-rm</non-exist-map>
+                        </non-exist>
+                      </conditional-advertisement>
+                    </unicast>
+                  <multicast />
+                  </ipv4>
+                </entry>
+              </filtering-profile>
+            <dampening-profile>
+              <entry name="default-default-dp" />
+              <entry name="default-damp-std-dp" />
+              <entry name="default-MPLS-dp" />
+              </dampening-profile>
+            </bgp>
+          <ospf>
+            <auth-profile>
+              <entry name="default-ospf-md5-ap">
+                <md5>
+                  <entry name="1">
+                    <key>-AQ==loAPsGcwh7U+7Z19ytaQoegbLx0=/u3O7ot7Y5UlLRi7woD9Jw==</key>
+                    <preferred>yes</preferred>
+                    </entry>
+                  </md5>
+                </entry>
+              </auth-profile>
+            <if-timer-profile>
+              <entry name="default-ethernet1-5-if-tp" />
+              <entry name="default-loopback.1-if-tp" />
+              <entry name="default-ethernet1-2-if-tp" />
+              </if-timer-profile>
+            <spf-timer-profile>
+              <entry name="default-spf-tp" />
+              </spf-timer-profile>
+            <redistribution-profile>
+              <entry name="default-redist-ipv4-ospf">
+                <static>
+                  <enable>yes</enable>
+                  <route-map>default-ipv4-static-to-ospf</route-map>
+                  </static>
+                <connected>
+                  <enable>yes</enable>
+                  <route-map>default-ipv4-connected-to-ospf</route-map>
+                  </connected>
+                </entry>
+              </redistribution-profile>
+            </ospf>
+          <filters>
+            <prefix-list>
+              <entry name="rp-connected-redist-rm-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>10.1.0.0/16</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="rp-static-redist-rm-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>10.200.0.0/16</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="rp-no-default-redist-rm-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>0.0.0.0/0</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="mpls-in-prefer-rm-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>10.0.0.0/8</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="mpls-in-deny-default-rm-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>0.0.0.0/0</network>
+                            <greater-than-or-equal>0</greater-than-or-equal>
+                            <less-than-or-equal>0</less-than-or-equal>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="to-mpls-site-only-rm-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>10.1.0.0/16</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="adv-if-hq-down-hq-route-cond-ne-rm-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>10.200.0.0/16</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="adv-if-hq-down-site-cond-adv-rm-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>10.1.0.0/16</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="disable-allow-redist-default-route-ipv4-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>0.0.0.0/0</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              <entry name="reject-default-route-ipv4-px">
+                <type>
+                  <ipv4>
+                    <ipv4-entry>
+                      <entry name="10">
+                        <action>permit</action>
+                        <prefix>
+                          <entry>
+                            <network>0.0.0.0/0</network>
+                            </entry>
+                          </prefix>
+                        </entry>
+                      </ipv4-entry>
+                    </ipv4>
+                  </type>
+                </entry>
+              </prefix-list>
+            <as-path-access-list>
+              <entry name="mpls-in-prefer-rm-aspl">
+                <aspath-entry>
+                  <entry name="10">
+                    <action>permit</action>
+                    <aspath-regex>_65000$</aspath-regex>
+                    </entry>
+                  </aspath-entry>
+                </entry>
+              </as-path-access-list>
+            <route-maps>
+              <bgp>
+                <bgp-entry>
+                  <entry name="MPLS-ipv4-in-rm">
+                    <route-map>
+                      <entry name="10">
+                        
+                        <action>permit</action>
+                        <match>
+                          <as-path-access-list>mpls-in-prefer-rm-aspl</as-path-access-list>
+                          <ipv4>
+                            <address>
+                              <prefix-list>mpls-in-prefer-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        <set>
+                          <local-preference>200</local-preference>
+                          <regular-community>
+                            <member>65101:100</member>
+                            </regular-community>
+                          <ipv4>
+                            <next-hop>unchanged</next-hop>
+                            </ipv4>
+                          </set>
+                        </entry>
+                      <entry name="15">
+                        
+                        <action>deny</action>
+                        <match>
+                          <ipv4>
+                            <address>
+                              <prefix-list>mpls-in-deny-default-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        <set>
+                          <ipv4>
+                            <next-hop>unchanged</next-hop>
+                            </ipv4>
+                          </set>
+                        </entry>
+                      </route-map>
+                    </entry>
+                  <entry name="mpls-pe-ipv4-in-rm">
+                    <route-map>
+                      <entry name="10">
+                        
+                        <action>permit</action>
+                        <match>
+                          <as-path-access-list>mpls-in-prefer-rm-aspl</as-path-access-list>
+                          <ipv4>
+                            <address>
+                              <prefix-list>mpls-in-prefer-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        <set>
+                          <local-preference>200</local-preference>
+                          <regular-community>
+                            <member>65101:100</member>
+                            </regular-community>
+                          <ipv4>
+                            <next-hop>unchanged</next-hop>
+                            </ipv4>
+                          </set>
+                        </entry>
+                      <entry name="15">
+                        
+                        <action>deny</action>
+                        <match>
+                          <ipv4>
+                            <address>
+                              <prefix-list>mpls-in-deny-default-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        <set>
+                          <ipv4>
+                            <next-hop>unchanged</next-hop>
+                            </ipv4>
+                          </set>
+                        </entry>
+                      </route-map>
+                    </entry>
+                  <entry name="MPLS-ipv4-out-rm">
+                    <route-map>
+                      <entry name="10">
+                        
+                        <action>permit</action>
+                        <match>
+                          <ipv4>
+                            <address>
+                              <prefix-list>to-mpls-site-only-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        <set>
+                          <metric>
+                            <value>50</value>
+                            <action>set</action>
+                            </metric>
+                          </set>
+                        </entry>
+                      </route-map>
+                    </entry>
+                  <entry name="MPLS-ipv4-unicast-cond-ne-rm">
+                    <route-map>
+                      <entry name="10">
+                        
+                        <action>permit</action>
+                        <match>
+                          <ipv4>
+                            <address>
+                              <prefix-list>adv-if-hq-down-hq-route-cond-ne-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        </entry>
+                      </route-map>
+                    </entry>
+                  <entry name="MPLS-ipv4-unicast-cond-adv-rm">
+                    <route-map>
+                      <entry name="10">
+                        
+                        <action>permit</action>
+                        <match>
+                          <ipv4>
+                            <address>
+                              <prefix-list>adv-if-hq-down-site-cond-adv-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        </entry>
+                      </route-map>
+                    </entry>
+                  <entry name="mpls-pe-ipv4-out-rm">
+                    <route-map>
+                      <entry name="10">
+                        
+                        <action>permit</action>
+                        <match>
+                          <ipv4>
+                            <address>
+                              <prefix-list>to-mpls-site-only-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        <set>
+                          <metric>
+                            <value>50</value>
+                            <action>set</action>
+                            </metric>
+                          </set>
+                        </entry>
+                      </route-map>
+                    </entry>
+                  <entry name="mpls-pe-ipv4-unicast-cond-adv-rm">
+                    <route-map>
+                      <entry name="10">
+                        
+                        <action>permit</action>
+                        <match>
+                          <ipv4>
+                            <address>
+                              <prefix-list>adv-if-hq-down-site-cond-adv-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        </entry>
+                      </route-map>
+                    </entry>
+                  <entry name="mpls-pe-ipv4-unicast-cond-ne-rm">
+                    <route-map>
+                      <entry name="10">
+                        
+                        <action>permit</action>
+                        <match>
+                          <ipv4>
+                            <address>
+                              <prefix-list>adv-if-hq-down-hq-route-cond-ne-rm-px</prefix-list>
+                              </address>
+                            </ipv4>
+                          </match>
+                        </entry>
+                      </route-map>
+                    </entry>
+                  </bgp-entry>
+                </bgp>
+              <redistribution>
+                <redist-entry>
+                  <entry name="default-ipv4-connected-to-bgp">
+                    <connected-static>
+                      <bgp>
+                        <route-map>
+                          <entry name="10">
+                            <action>deny</action>
+                            <match>
+                              <ipv4>
+                                <address>
+                                  <prefix-list>disable-allow-redist-default-route-ipv4-px</prefix-list>
+                                  </address>
+                                </ipv4>
+                              </match>
+                            </entry>
+                          <entry name="15">
+                            
+                            <action>permit</action>
+                            <match>
+                              <ipv4>
+                                <address>
+                                  <prefix-list>rp-connected-redist-rm-px</prefix-list>
+                                  </address>
+                                </ipv4>
+                              </match>
+                            <set>
+                              <origin>incomplete</origin>
+                              </set>
+                            </entry>
+                          </route-map>
+                        </bgp>
+                      </connected-static>
+                    </entry>
+                  <entry name="default-ipv4-ospf-to-bgp">
+                    <ospf>
+                      <bgp>
+                        <route-map>
+                          <entry name="10">
+                            <action>deny</action>
+                            <match>
+                              <address>
+                                <prefix-list>disable-allow-redist-default-route-ipv4-px</prefix-list>
+                                </address>
+                              </match>
+                            </entry>
+                          <entry name="15">
+                            
+                            <action>permit</action>
+                            <set>
+                              <origin>igp</origin>
+                              <regular-community>
+                                <member>65101:200</member>
+                                </regular-community>
+                              </set>
+                            </entry>
+                          </route-map>
+                        </bgp>
+                      </ospf>
+                    </entry>
+                  <entry name="default-ipv4-static-to-ospf">
+                    <connected-static>
+                      <ospf>
+                        <route-map>
+                          <entry name="10">
+                            <match>
+                              <ipv4>
+                                <address>
+                                  <prefix-list>disable-allow-redist-default-route-ipv4-px</prefix-list>
+                                  </address>
+                                </ipv4>
+                              </match>
+                            </entry>
+                          <entry name="15">
+                            
+                            <action>permit</action>
+                            <match>
+                              <ipv4>
+                                <address>
+                                  <prefix-list>rp-static-redist-rm-px</prefix-list>
+                                  </address>
+                                </ipv4>
+                              </match>
+                            <set>
+                              <metric>
+                                <action>set</action>
+                                <value>20</value>
+                                </metric>
+                              <metric-type>type-2</metric-type>
+                              </set>
+                            </entry>
+                          </route-map>
+                        </ospf>
+                      </connected-static>
+                    </entry>
+                  <entry name="default-ipv4-connected-to-ospf">
+                    <connected-static>
+                      <ospf>
+                        <route-map>
+                          <entry name="10">
+                            <match>
+                              <ipv4>
+                                <address>
+                                  <prefix-list>disable-allow-redist-default-route-ipv4-px</prefix-list>
+                                  </address>
+                                </ipv4>
+                              </match>
+                            </entry>
+                          <entry name="15">
+                            
+                            <action>permit</action>
+                            <match>
+                              <ipv4>
+                                <address>
+                                  <prefix-list>rp-connected-redist-rm-px</prefix-list>
+                                  </address>
+                                </ipv4>
+                              </match>
+                            <set>
+                              <metric-type>type-1</metric-type>
+                              <tag>101</tag>
+                              </set>
+                            </entry>
+                          </route-map>
+                        </ospf>
+                      </connected-static>
+                    </entry>
+                  <entry name="default-reject-default-route-ospf-redist-rm">
+                    <ospf>
+                      <rib>
+                        <route-map>
+                          <entry name="10">
+                            
+                            <match>
+                              <address>
+                                <prefix-list>reject-default-route-ipv4-px</prefix-list>
+                                </address>
+                              </match>
+                            </entry>
+                          <entry name="15">
+                            
+                            <action>permit</action>
+                            </entry>
+                          </route-map>
+                        </rib>
+                      </ospf>
+                    </entry>
+                  </redist-entry>
+                </redistribution>
+              </route-maps>
+            </filters>
+          <bfd>
+            <entry name="bfd-fast">
+              <min-tx-interval>300</min-tx-interval>
+              <min-rx-interval>300</min-rx-interval>
+              </entry>
+            </bfd>
+          </routing-profile>
+        </network>
+      <deviceconfig>
+        <system>
+          <type>
+            <static />
+            </type>
+          <update-server>updates.paloaltonetworks.com</update-server>
+          <update-schedule>
+            <threats>
+              <recurring>
+                <weekly>
+                  <day-of-week>wednesday</day-of-week>
+                  <at>01:02</at>
+                  <action>download-only</action>
+                  </weekly>
+                </recurring>
+              </threats>
+            </update-schedule>
+          <timezone>UTC</timezone>
+          <service>
+            <disable-telnet>yes</disable-telnet>
+            <disable-http>yes</disable-http>
+            </service>
+          <hostname>lab-vr2lr-legacy</hostname>
+          <device-telemetry>
+            <device-health-performance>yes</device-health-performance>
+            <product-usage>yes</product-usage>
+            <threat-prevention>yes</threat-prevention>
+            <region>Americas</region>
+            </device-telemetry>
+          <ip-address>192.0.2.70</ip-address>
+          <netmask>255.255.255.0</netmask>
+          <default-gateway>192.0.2.1</default-gateway>
+          <dns-setting>
+            <servers>
+              <primary>1.1.1.1</primary>
+              <secondary>9.9.9.9</secondary>
+              </servers>
+            </dns-setting>
+          <ntp-servers>
+            <primary-ntp-server>
+              <ntp-server-address>0.pool.ntp.org</ntp-server-address>
+              <authentication-type>
+                <none />
+                </authentication-type>
+              </primary-ntp-server>
+            <secondary-ntp-server>
+              <ntp-server-address>1.pool.ntp.org</ntp-server-address>
+              <authentication-type>
+                <none />
+                </authentication-type>
+              </secondary-ntp-server>
+            </ntp-servers>
+          </system>
+        <setting>
+          <config>
+            <rematch>yes</rematch>
+            </config>
+          <management>
+            <hostname-type-in-syslog>FQDN</hostname-type-in-syslog>
+            </management>
+          <auto-mac-detect>yes</auto-mac-detect>
+          <advance-routing>yes</advance-routing>
+          <session>
+            <packet-buffer-protection-latency-alert>50</packet-buffer-protection-latency-alert>
+            <packet-buffer-protection-latency-activate>200</packet-buffer-protection-latency-activate>
+            <packet-buffer-protection-latency-max-tolerate>500</packet-buffer-protection-latency-max-tolerate>
+            <packet-buffer-protection-latency-block-countdown>500</packet-buffer-protection-latency-block-countdown>
+            </session>
+          </setting>
+        </deviceconfig>
+      <vsys>
+        <entry name="vsys1">
+          <application />
+          <application-group />
+          <zone>
+            <entry name="untrust">
+              <network>
+                <layer3>
+                  <member>ethernet1/1</member>
+                  <member>ethernet1/8</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="trust">
+              <network>
+                <layer3>
+                  <member>ethernet1/2</member>
+                  <member>ethernet1/5</member>
+                  <member>ethernet1/7.10</member>
+                  <member>ethernet1/7.20</member>
+                  <member>loopback.1</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="dmz">
+              <network>
+                <layer3>
+                  <member>ethernet1/3</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="mpls">
+              <network>
+                <layer3>
+                  <member>ethernet1/4</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="vpn">
+              <network>
+                <layer3>
+                  <member>tunnel.1</member>
+                  </layer3>
+                </network>
+              </entry>
+            <entry name="guest">
+              <network>
+                <layer3>
+                  <member>ethernet1/6</member>
+                  </layer3>
+                </network>
+              </entry>
+            </zone>
+          <service />
+          <service-group />
+          <schedule />
+          <rulebase />
+          <address>
+            <entry name="dmz-router">
+              <ip-netmask>10.1.2.254</ip-netmask>
+              </entry>
+            </address>
+          </entry>
+        </vsys>
+      </entry>
+    </devices>
+  </config>
