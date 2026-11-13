@@ -124,6 +124,101 @@ def synthetic():
         root.find('devices/entry/deviceconfig/system').remove(h)
     mutate('synthetic-no-hostname', no_hostname_no_version)
 
+    # ---- BGP: start from the bgp-branch example
+    bgp_base = open(os.path.join(ROOT, 'examples/bgp-branch/bgp-branch-legacy-10.2.xml'), encoding='utf-8').read()
+
+    def bgp_mutate(name, fn):
+        root = ET.fromstring(bgp_base)
+        fn(root)
+        cases[name] = ET.tostring(root, encoding='unicode')
+
+    X = ET.fromstring
+    LONG = 'neighbour-router-with-long-name'   # 31 characters: forces hashed ARE names
+
+    def bgp_supported(root):   # every mapped option; must validate on 12.1
+        net = root.find('devices/entry/network')
+        site = net.find('virtual-router/entry[@name="default"]')
+        peer = net.find('virtual-router/entry[@name="peer-vr"]')
+        peer.set('name', LONG)
+        site.find('routing-table/ip/static-route/entry[@name="lab-to-peer"]/nexthop/next-vr').text = LONG
+        b = site.find('protocol/bgp')
+        b.find('routing-options/as-format').text = '2-byte'
+        b.find('allow-redist-default-route').text = 'yes'
+        wan = b.find('peer-group/entry[@name="WAN"]')
+        wan.find('soft-reset-with-stored-info').text = 'yes'
+        p2 = copy.deepcopy(wan.find('peer/entry[@name="wan-pe"]'))
+        p2.set('name', 'wan-pe-2')
+        p2.find('peer-address/ip').text = '10.99.0.3'
+        p2.find('max-prefixes').text = 'unlimited'
+        co = p2.find('connection-options')
+        for k, v in (('idle-hold-time', '10'), ('min-route-adv-interval', '5'), ('open-delay-time', '2')):
+            ET.SubElement(co, k).text = v
+        wan.find('peer').append(p2)
+        imp = b.find('policy/import/rules')
+        imp.append(X('<entry name="in-tweak"><enable>yes</enable><used-by><member>WAN</member><member>HUB</member></used-by>'
+                     '<match><med>7</med><nexthop><member>10.99.0.2</member></nexthop></match><action><allow><update>'
+                     '<weight>200</weight><origin><egp/></origin><med>20</med><community><overwrite><member>65101:1</member>'
+                     '<member>no-export</member></overwrite></community><as-path-limit>5</as-path-limit></update></allow></action></entry>'))
+        imp.append(X('<entry name="in-disabled"><enable>no</enable><used-by><member>WAN</member></used-by><action><deny/></action></entry>'))
+        exp = b.find('policy/export/rules')
+        exp.append(X('<entry name="out-prepend-one"><enable>yes</enable><used-by><member>HUB</member></used-by>'
+                     '<match><address-prefix><entry name="10.1.250.0/30"><exact>yes</exact></entry></address-prefix></match>'
+                     '<action><allow><update><as-path><prepend>1</prepend></as-path></update></allow></action></entry>'))
+        rp = site.find('protocol/redist-profile')
+        rp.append(X('<entry name="rp-by-interface"><priority>30</priority><filter><type><member>connect</member></type>'
+                    '<interface><member>ethernet1/2</member><member>ethernet1/3</member></interface>'
+                    '<nexthop><member>10.1.2.254</member></nexthop></filter><action><redist/></action></entry>'))
+        b.find('redist-rules').append(X('<entry name="rp-by-interface"><enable>yes</enable><address-family-identifier>ipv4'
+                                        '</address-family-identifier><set-local-preference>120</set-local-preference>'
+                                        '<metric>9</metric><set-as-path-limit>3</set-as-path-limit></entry>'))
+        lp = net.find(f'virtual-router/entry[@name="{LONG}"]/protocol')
+        lp.find('redist-profile/entry[@name="rp-statics"]').set('name', 'rp-statics-with-a-long-name-xx')
+        lp.find('bgp/redist-rules/entry[@name="rp-statics"]').set('name', 'rp-statics-with-a-long-name-xx')
+        lp.find('redist-profile/entry[@name="rp-statics-with-a-long-name-xx"]/filter').append(
+            X('<nexthop><member>192.0.2.1</member></nexthop>'))
+        ET.SubElement(lp.find('bgp'), 'dampening-profile').append(X('<entry name="unused-damp"><enable>yes</enable></entry>'))
+    bgp_mutate('synthetic-bgp-supported', bgp_supported)
+
+    def bgp_unsupported(root):   # each item must be reported as "not converted"
+        site = root.find('devices/entry/network/virtual-router/entry[@name="default"]')
+        b = site.find('protocol/bgp')
+        ET.SubElement(b, 'future-knob').text = 'yes'
+        ET.SubElement(b.find('routing-options'), 'reflector-cluster-id').text = '1.1.1.1'
+        vpn = b.find('peer-group/entry[@name="VPN"]')
+        vpn.find('type/ebgp/import-nexthop').text = 'use-peer'
+        p = vpn.find('peer/entry[@name="dc-vpn"]')
+        p.find('peer-address').remove(p.find('peer-address/ip'))
+        ET.SubElement(p.find('peer-address'), 'fqdn').text = 'hub.example.net'
+        p.find('enable-mp-bgp').text = 'yes'
+        p.find('subsequent-address-family-identifier/multicast').text = 'yes'
+        p.find('reflector-client').text = 'client'
+        p.find('peering-type').text = 'bilateral'
+        p.find('connection-options/incoming-bgp-connection/allow').text = 'no'
+        p.find('connection-options').append(X('<authentication>missing-profile</authentication>'))
+        hub = b.find('peer-group/entry[@name="HUB"]')
+        hub.find('type').clear()
+        ET.SubElement(ET.SubElement(hub.find('type'), 'ibgp-confed'), 'export-nexthop').text = 'original'
+        imp = b.find('policy/import/rules')
+        imp.append(X('<entry name="in-regexes"><enable>yes</enable><used-by><member>WAN</member></used-by><match>'
+                     '<as-path><regex>^65000 65001$</regex></as-path><community><regex>^65000:.*</regex></community>'
+                     '<extended-community><regex>target:1:1</regex></extended-community>'
+                     '<from-peer><member>wan-pe</member></from-peer><route-table><multicast/></route-table></match>'
+                     '<action><allow><dampening>damp-x</dampening><update><nexthop>10.0.0.1</nexthop>'
+                     '<community><remove-all/></community><extended-community><append><member>target:1:1</member>'
+                     '</append></extended-community><as-path><remove/></as-path></update></allow></action></entry>'))
+        b.find('policy').append(X('<aggregation><address><entry name="agg"><prefix>10.1.0.0/16</prefix></entry></address></aggregation>'))
+        b.find('policy').append(X('<conditional-advertisement><policy><entry name="ca"><enable>yes</enable></entry></policy>'
+                                  '</conditional-advertisement>'))
+        b.find('redist-rules').append(X('<entry name="rp-v6"><enable>yes</enable><address-family-identifier>ipv6'
+                                        '</address-family-identifier></entry>'))
+        b.find('redist-rules').append(X('<entry name="rp-missing"><enable>yes</enable><address-family-identifier>ipv4'
+                                        '</address-family-identifier><route-table><both/></route-table>'
+                                        '<set-extended-community><member>target:1:1</member></set-extended-community></entry>'))
+        site.find('protocol/redist-profile').append(X(
+            '<entry name="rp-missing"><priority>40</priority><filter><type><member>rip</member></type>'
+            '<ospf><area><member>0.0.0.0</member></area></ospf></filter><action><redist/></action></entry>'))
+    bgp_mutate('synthetic-bgp-unsupported', bgp_unsupported)
+
     are = open(os.path.join(ROOT, 'examples/static/static-are-12.1.xml'), encoding='utf-8').read()
     cases['error-already-are'] = are
     cases['error-not-config'] = '<response status="success"><result/></response>'

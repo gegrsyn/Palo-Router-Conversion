@@ -77,14 +77,92 @@ an export rule unsupported (10022), OSPF stub default-route metric not converted
 | `static` | every static-route option | identical, except one unused BFD profile that really exists in the source |
 | `static-ecmp` | three VRs: weighted / balanced round robin, IP hash | identical |
 | `static-edge` | factory-shaped VR with disabled protocol stubs, all admin distances, IPv6 path-monitor / BFD / discard / next-vr / interface-only / no-install, multicast route with admin distance, DHCP default route, 31-character names | identical |
-| `kitchen-sink` | BGP, OSPF, redistribution | refused (exit 2) with a "Not converted" list, as designed |
+| `bgp-branch` | eBGP with MD5 / timers / max-prefix / import and export rules, eBGP over a tunnel with every default spelled out, iBGP with next-hop self, connected and static redistribution with priorities and no-redist, a second router peering with the first | identical; BGP tables identical at runtime |
+| `kitchen-sink` | BGP, OSPF, redistribution | BGP partly converted; OSPF, dampening, aggregation, conditional advertisement reported (exit 2), as designed |
 
 Every converted example validates on 12.1.4, both grafted onto a running config and as a whole-file import of the
 bytes the browser saves. `tools/parity.py` confirms the browser and Python converters give byte-identical reports
 and canonically identical XML on every example and on synthetic edge cases.
 
+## BGP mapping (verified at runtime on 10.2.11 and 12.1.4)
+
+BGP was tested with real sessions: two routers on the same firewall peer over loopbacks joined by next-vr / next-lr
+static routes, so routes really flow even without connected links. The `bgp-branch` example was run on 10.2 in legacy
+mode, converted, and run on 12.1.4. Both firewalls ended up with **identical BGP tables** (prefix, local or received,
+AS path, local preference, MED) on both routers. The same check catches a deliberately introduced difference.
+
+| Legacy (10.2) `protocol/bgp` | Advanced Routing (12.1) |
+|------------------------------|-------------------------|
+| enable, router-id, local-as, install-route, enforce-first-as, ecmp-multi-as | same, under `logical-router/.../vrf/bgp` |
+| routing-options: default-local-preference, graceful-restart, med | `bgp/default-local-preference`, `bgp/graceful-restart`, `bgp/med` |
+| routing-options/as-format 2-byte | always 4-byte (reported) |
+| auth-profile | `routing-profile/bgp/auth-profile` (encrypted secret copied) |
+| peer: keep-alive, hold, min-route-adv, open-delay | `routing-profile/bgp/timer-profile`, only when not the defaults (30/90/30/0) |
+| peer: idle-hold-time | no equivalent; reconnect retry interval (15 s) applies (reported if not 15) |
+| peer: local-address, peer-address, peer-as, multihop, BFD | same; BFD `Inherit-vr-global-setting` → `Inherit-lr-global-setting` |
+| peer: max-prefixes (default 5000) | address-family profile `maximum-prefix`, warning-only (reported, see below) |
+| peer group: type ebgp / ibgp | same; a peer group also needs an address-family profile (required by 12.1) |
+| ebgp remove-private-as yes | address-family profile `remove-private-AS all` |
+| export-nexthop use-self | address-family profile `next-hop self` |
+| soft-reset-with-stored-info yes | address-family profile `soft-reconfig-with-stored-info` |
+| import / export rules (per peer group via used-by) | one inbound and one outbound BGP route-map per peer group, rules in order |
+| rule match: address-prefix (exact yes / no) | prefix-list entry (exact / `le 32`) |
+| rule match: as-path regex, literal community, MED, next hop | AS-path access list, community list, `match metric`, next-hop prefix-list |
+| rule action: deny / allow | route-map deny / permit |
+| update: local-preference, MED, origin, weight, community append / overwrite | `set local-preference`, `set metric`, `set origin`, `set weight`, `set regular-community` (+ overwrite) |
+| export update: as-path prepend N | `aspath-prepend` with **N-1** copies of the local AS (see below) |
+| reject-default-route (absent = yes) | inbound prefix-list `reject-default-route` on every peer group |
+| redist-profile + bgp redist-rules (connect, static) | redistribution profile with a route-map per source; profiles in priority order |
+| redist filter: destination / interface / next hop | prefix-list (`le 32`) / `match interface` / next-hop prefix-list |
+| redist-rules: set-origin, set-med, set-local-preference, set-community | route-map `set` (MED 0 when no set-med, see below) |
+| allow-redist-default-route (absent = no) | deny entry for 0.0.0.0/0 at the top of each redistribution route-map |
+
+### Legacy behaviour found by testing (and how the converter keeps it)
+
+- **Import/export rules** apply per peer group. A group with no enabled rule accepts and advertises everything.
+  Once a group has an enabled rule, a route that matches no rule is rejected (import) or not advertised (export).
+  That is the same implicit deny an Advanced Routing route-map has. Disabled rules are ignored.
+- **Reject default route** is on unless set to `no`, so a default route learned from a peer is dropped. Advanced
+  Routing has no such switch; an inbound prefix-list on every peer group does the same.
+- **Redistribution destinations** match the prefix and anything more specific (a `10.0.0.0/8` entry also
+  redistributes `10.50.0.0/16`, and `0.0.0.0/0` matches everything).
+- **Connected routes** don't include loopback addresses in legacy (they are host routes); Advanced Routing
+  redistributes them. The converter adds a deny entry per loopback interface so the same routes are advertised.
+- **MED of redistributed routes** is 0 in legacy unless `set-med` is given; Advanced Routing sends the route's metric
+  (10 for a static route). The converter sets MED 0 explicitly.
+- **AS-path prepend N** makes the local AS appear N times in total (prepend 1 changes nothing); Advanced Routing's
+  `aspath-prepend` adds to the one copy every eBGP update gets, so N-1 copies are configured.
+- The redistribution rule's **metric** field had no effect on anything a peer receives; it is dropped (reported).
+- **Maximum prefixes:** legacy keeps the session up and silently drops prefixes above the limit (default 5000).
+  Advanced Routing only has warning-only (accepts all and logs) or restart (resets the session); the default there is
+  1000. The converter carries the legacy limit with warning-only and reports it.
+- `multihop 0` works for directly reachable peers in both (TTL 1 for eBGP).
+
+### Not converted (reported as "Not converted" items)
+
+MP-BGP / IPv6, FQDN peer addresses, confederations, route reflector settings, peering type, restricted incoming /
+outgoing connections, import next hop "use peer", conditional advertisement, aggregation, dampening used by a rule,
+community regular expressions other than a single literal community, extended communities, `from-peer` matches,
+multicast route tables, next-hop and AS-path-remove updates, and redistribution of OSPF / RIP routes. Any BGP setting
+the converter does not recognise is also reported rather than dropped.
+
+### PAN-OS's built-in migrator on the same config
+
+Loaded on 12.1.4, its output produced **12 differences** in the BGP tables against legacy, while `show-error` reported only
+the AS-path prepend:
+
+- the site no longer accepted the routes its AS-path rule allowed (10.50.0.0/16, 10.60.0.0/16);
+- the tunnel subnet (connected) was no longer advertised;
+- the AS-path prepend was dropped;
+- the "no-redist" profile was ignored, so an extra /32 was advertised;
+- redistributed static routes carried MED 10 instead of 0.
+
+On the `kitchen-sink` example it also turned per-peer keep-alive / hold timers into an empty timer profile, lost the
+max-prefixes value and reset dampening profiles to defaults without attaching them.
+
 ## Open items
 - **no-install:** a possible ARE equivalent is a per-VRF `rib-filter` route-map denying the prefix, so it stays
   configured but out of the RIB. Untested; the converter skips such routes with a warning instead.
-- **Dynamic routing** (BGP, OSPF, redistribution, PIM) is out of scope and reported for manual work.
+- **OSPF, OSPFv3, RIP and PIM** remain out of scope and are reported for manual work.
+- **BGP remove-private-AS** maps to `remove-private-AS all`; this mapping validates but was not exercised at runtime.
 - Only 12.1.4 has been tested as a target.

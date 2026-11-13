@@ -20,16 +20,24 @@ PAN-OS 12.1, Advanced Routing only). Neither box can switch engines, so the expo
 
 | Converted | Not converted (reported, must be done by hand) |
 |-----------|-----------------------------------------------|
-| Static routes, IPv4 and IPv6 (next hop IP / FQDN / next-VR → next-LR / discard / interface-only) | BGP, OSPF, OSPFv3, RIP |
-| Admin distances (split into the ARE per-protocol form) | Redistribution profiles |
-| ECMP (all four algorithms) | Multicast routing (PIM / IGMP) when enabled |
-| BFD profiles (moved to `routing-profile/bfd`) | |
+| Static routes, IPv4 and IPv6 (next hop IP / FQDN / next-VR → next-LR / discard / interface-only) | OSPF, OSPFv3, RIP |
+| Admin distances (split into the ARE per-protocol form) | Multicast routing (PIM / IGMP) when enabled |
+| ECMP (all four algorithms) | BGP: MP-BGP / IPv6, confederations, route reflectors, aggregation, conditional advertisement, dampening, extended communities, community regular expressions |
+| BFD profiles (moved to `routing-profile/bfd`) | Redistribution of OSPF / RIP routes into BGP |
 | Path monitoring | |
 | Multicast-RIB static routes (admin distance → `preference`) | |
 | vsys `import/network/virtual-router` lists | |
+| **BGP (IPv4):** peer groups (eBGP / iBGP) and peers, MD5 authentication, timers, multihop, BFD, max prefixes, remove private AS, next-hop self, graceful restart, MED and local-preference options | |
+| **BGP import / export rules** → route-maps (prefix, AS-path, literal community, MED and next-hop matches; local preference, MED, origin, weight, community and AS-path prepend updates) | |
+| **Redistribution of connected and static routes into BGP**, including profile priorities, filters, "no redistribute" profiles and the default-route rules | |
 
 Static routes set to `no-install` are skipped with a warning (READY WITH WARNINGS): ARE has no such setting, and
 the route was not forwarding anyway.
+
+BGP is converted so the firewall advertises and accepts the **same routes with the same attributes** as before.
+Where the engines behave differently by default (rejecting a received default route, loopbacks in connected routes,
+MED of redistributed routes, AS-path prepend counting), the converter adds what is needed and says so in the report.
+This was checked with live BGP sessions on both releases: see [`docs/mapping.md`](docs/mapping.md).
 
 Everything outside routing (interfaces, zones, policies, objects, device settings) is left untouched.
 
@@ -71,6 +79,8 @@ silently wrong in several cases tested here:
 - Multicast-RIB routes become unicast routes.
 - ECMP weighted-round-robin on subinterfaces is renamed `ethernet1-7.31`, which fails validation on 12.1.
 - The OSPF intra-area admin distances are dropped, and `ospfv3-inter` takes the IPv4 value.
+- On a branch BGP config, the migrated firewall advertised and accepted different routes than before (12 differences
+  in the BGP tables), while reporting only one warning.
 
 Details, and the full legacy → ARE mapping table (verified by committing on 12.1.4), are in
 [`docs/mapping.md`](docs/mapping.md).
@@ -92,9 +102,10 @@ Details, and the full legacy → ARE mapping table (verified by committing on 12
     python3 vr2lr.py examples/static-edge/static-edge-legacy-10.2.xml -o /tmp/out.xml
     python3 tools/compare.py /tmp/out.xml examples/static-edge/static-edge-are-12.1.xml   # converter vs native ARE
 
-Current results: `static-ecmp` and `static-edge` match the native ARE configs exactly. Every converted example
-validates on PAN-OS 12.1.4, including the file exactly as the browser saves it. The browser and Python outputs are
-identical on every test input.
+Current results: `bgp-branch`, `static-ecmp` and `static-edge` match the native ARE configs exactly, and for
+`bgp-branch` the BGP tables of the converted config running on 12.1.4 are identical to the original on 10.2. Every
+converted example validates on PAN-OS 12.1.4, including the file exactly as the browser saves it. The browser and
+Python outputs are identical on every test input.
 
 Tested target: PAN-OS 12.1.4. Other 12.1.x releases are expected to behave the same but are untested.
 

@@ -96,13 +96,13 @@ code { font-family: var(--mono); font-size: .9em; }
     <ol id="steps-list"></ol>
   </section>
 
-  <footer>vr2lr <span id="ver"></span>. Static routing only: BGP, OSPF, RIP, redistribution and multicast routing are reported, not converted.</footer>
+  <footer>vr2lr <span id="ver"></span>. Converts static routing and IPv4 BGP. OSPF, RIP, multicast routing and less common BGP features are reported, not converted.</footer>
 </main>
 
 <script id="vr2lr-core">
 'use strict';
-// ---- converter core: a line-for-line port of vr2lr.py. Keep the two in lockstep (lab/parity.py checks). ----
-const VERSION = '0.2.0';
+// ---- converter core: a line-for-line port of vr2lr.py. Keep the two in lockstep (tools/parity.py checks). ----
+const VERSION = '0.3.0';
 const ADMIN_DIST_MAP = {
   'static': ['static'], 'static-ipv6': ['static-ipv6'],
   'ospf-int': ['ospf-intra', 'ospf-inter'], 'ospf-ext': ['ospf-ext'],
@@ -144,7 +144,7 @@ const plural = (k, one, many) => `${k} ${k === 1 ? one : many}`;
 class Report {
   constructor() {
     this.changes = []; this.checks = []; this.todos = [];
-    this.routers = 0; this.converted = 0; this.skipped = 0;
+    this.routers = 0; this.converted = 0; this.skipped = 0; this.bgpPeers = 0;
     this.hostname = ''; this.version = '';
   }
   change(m) { this.changes.push(m); }
@@ -161,7 +161,9 @@ class Report {
     let s = `${plural(this.routers, 'virtual router', 'virtual routers')} became ` +
       `${plural(this.routers, 'logical router', 'logical routers')}. ` +
       `${plural(this.converted, 'static route', 'static routes')} converted`;
-    return s + (this.skipped ? `, ${this.skipped} not converted.` : '.');
+    s += this.skipped ? `, ${this.skipped} not converted.` : '.';
+    if (this.bgpPeers) s += ` ${plural(this.bgpPeers, 'BGP peer', 'BGP peers')} converted.`;
+    return s;
   }
   sections() {
     return [['Not converted - must be handled by hand', this.todos], ['Check these', this.checks],
@@ -262,7 +264,556 @@ function convertStatic(entry, fam, vrName, rep, uniOut, mcOut) {
   rep.converted += 1;
 }
 
-function convertVr(vr, rep) {
+// ---------------------------------------------------------------- BGP (see vr2lr.py for the verified semantics)
+const NAME_MAX = 63;
+const BGP_PEER_DEFAULTS = {'keep-alive-interval': '30', 'hold-time': '90', 'idle-hold-time': '15',
+  'min-route-adv-interval': '30', 'open-delay-time': '0'};
+
+function fnv32(s) {
+  let h = 0x811c9dc5;
+  for (const ch of s) h = Math.imul(h ^ ch.codePointAt(0), 0x01000193) >>> 0;
+  return h.toString(16).padStart(8, '0');
+}
+const nm = s => s.length <= NAME_MAX ? s : s.slice(0, NAME_MAX - 9) + '-' + fnv32(s);
+
+let DOC = null;   // the document being converted (set by convert)
+// el(tag, ...children) in vr2lr.py; children may be null. opts: {text, name}
+function xel(tag, opts, ...children) {
+  const e = DOC.createElement(tag);
+  if (opts && opts.text !== undefined && opts.text !== null) e.textContent = opts.text;
+  for (const c of children) if (c) e.appendChild(c);
+  if (opts && opts.name !== undefined) e.setAttribute('name', opts.name);
+  return e;
+}
+const xmembers = (tag, values) => xel(tag, null, ...values.map(v => xel('member', {text: v})));
+const xtag = el => el.children.length ? el.children[0].tagName : null;
+
+class Profiles {
+  constructor() {
+    this.objs = {};
+    for (const k of ['auth', 'timer', 'af', 'filtering', 'redist', 'prefix', 'aspath', 'community', 'rm-bgp', 'rm-redist'])
+      this.objs[k] = new Map();
+  }
+  add(kind, name, entry) {
+    entry.setAttribute('name', name);
+    if (!this.objs[kind].has(name)) this.objs[kind].set(name, entry);
+    return name;
+  }
+  prefixList(name, rows) {
+    const x = xel('ipv4-entry');
+    rows.forEach(([act, net, exact], i) => {
+      const p = xel('prefix');
+      if (net === 'any') sub(p, 'network', 'any');
+      else {
+        const pe = xel('entry', null, xel('network', {text: net}));
+        if (!exact) sub(pe, 'less-than-or-equal', '32');
+        p.appendChild(pe);
+      }
+      x.appendChild(xel('entry', {name: String((i + 1) * 10)}, xel('action', {text: act}), p));
+    });
+    return this.add('prefix', name, xel('entry', null, xel('type', null, xel('ipv4', null, x))));
+  }
+  write(net) {
+    const o = this.objs;
+    if (!Object.values(o).some(m => m.size)) return;
+    const rp = find(net, 'routing-profile') || sub(net, 'routing-profile');
+    const groups = [['bgp', [['auth-profile', 'auth'], ['timer-profile', 'timer'], ['address-family-profile', 'af'],
+      ['filtering-profile', 'filtering'], ['redistribution-profile', 'redist']]],
+      ['filters', [['prefix-list', 'prefix'], ['as-path-access-list', 'aspath'], ['community-list', 'community']]]];
+    for (const [top, kinds] of groups) {
+      let node = null;
+      for (const [tag, k] of kinds) {
+        if (o[k].size) {
+          node = node || sub(rp, top);
+          const t = sub(node, tag);
+          for (const v of o[k].values()) t.appendChild(v);
+        }
+      }
+      if (top === 'filters' && (o['rm-bgp'].size || o['rm-redist'].size)) {
+        node = node || sub(rp, 'filters');
+        const rms = sub(node, 'route-maps');
+        if (o['rm-bgp'].size) { const t = sub(sub(rms, 'bgp'), 'bgp-entry'); for (const v of o['rm-bgp'].values()) t.appendChild(v); }
+        if (o['rm-redist'].size) { const t = sub(sub(rms, 'redistribution'), 'redist-entry'); for (const v of o['rm-redist'].values()) t.appendChild(v); }
+      }
+    }
+  }
+}
+
+const rmEntry = (seq, action, match, set) => xel('entry', {name: String(seq)}, xel('action', {text: action}),
+  match && match.children.length ? match : null, set && set.children.length ? set : null);
+const matchPrefix = (name, where) => xel('ipv4', null, xel(where || 'address', null, xel('prefix-list', {text: name})));
+const texts = (node, path) => findAll(node, path).map(m => m.textContent);
+
+class BgpVr {
+  constructor(vr, profiles, rep) {
+    this.vr = vr; this.p = profiles; this.rep = rep;
+    this.name = vr.getAttribute('name');
+    this.pfx = this.name === 'default' ? '' : this.name + '-';
+    this.bgp = find(vr, 'protocol/bgp');
+    this.ok = true;
+  }
+  todo(what) {
+    this.ok = false;
+    this.rep.todo(`BGP in "${this.name}": ${what} This version does not convert it; configure it by hand on ` +
+      'the PA-520.');
+  }
+  unknown(node, path, known) {
+    for (const c of Array.from(node.children))
+      if (!known.includes(c.tagName)) this.todo(`the setting "${path}/${c.tagName}" is not supported.`);
+  }
+
+  convert() {
+    const b = this.bgp, rep = this.rep;
+    this.unknown(b, 'bgp', ['enable', 'router-id', 'local-as', 'install-route', 'reject-default-route',
+      'allow-redist-default-route', 'ecmp-multi-as', 'enforce-first-as', 'routing-options',
+      'auth-profile', 'peer-group', 'policy', 'redist-rules', 'dampening-profile', 'global-bfd']);
+    const out = xel('bgp');
+    for (const t of ['enable', 'router-id', 'local-as', 'install-route', 'enforce-first-as', 'ecmp-multi-as'])
+      if (find(b, t)) sub(out, t, findtext(b, t));
+    const ro = find(b, 'routing-options');
+    if (ro) {
+      this.unknown(ro, 'routing-options', ['as-format', 'default-local-preference', 'graceful-restart', 'med',
+        'aggregate', 'reflector-cluster-id', 'confederation-member-as']);
+      if (findtext(ro, 'default-local-preference')) sub(out, 'default-local-preference', findtext(ro, 'default-local-preference'));
+      const gr = find(ro, 'graceful-restart');
+      if (gr) {
+        this.unknown(gr, 'graceful-restart', ['enable', 'stale-route-time', 'local-restart-time', 'max-peer-restart-time']);
+        out.appendChild(gr.cloneNode(true));
+      }
+      const med = find(ro, 'med');
+      if (med) {
+        this.unknown(med, 'med', ['always-compare-med', 'deterministic-med-comparison']);
+        out.appendChild(med.cloneNode(true));
+      }
+      if (findtext(ro, 'as-format') === '2-byte')
+        rep.check(`BGP in "${this.name}" used the 2-byte AS number format. Advanced Routing always uses ` +
+          '4-byte AS numbers; peers that only support 2-byte AS numbers still work (AS_TRANS).');
+      for (const t of ['reflector-cluster-id', 'confederation-member-as'])
+        if (findtext(ro, t)) this.todo(`"${t}" (route reflector / confederation) is set.`);
+    }
+    const gb = findtext(b, 'global-bfd/profile');
+    if (gb) out.appendChild(xel('global-bfd', null, xel('profile', {text: gb})));
+    const usedDamp = new Set(texts(b, 'policy/import/rules/entry/action/allow/dampening'));
+    for (const d of findAll(b, 'dampening-profile/entry')) {
+      if (d.getAttribute('name') !== 'default' && !usedDamp.has(d.getAttribute('name')))
+        rep.change(`BGP dampening profile "${d.getAttribute('name')}" in "${this.name}" was not carried over: no ` +
+          'import rule used it.');
+    }
+    this.auth = {};
+    for (const a of findAll(b, 'auth-profile/entry')) {
+      const n = this.p.add('auth', nm(this.pfx + a.getAttribute('name')), xel('entry', null, find(a, 'secret').cloneNode(true)));
+      this.auth[a.getAttribute('name')] = n;
+    }
+    if (Object.keys(this.auth).length)
+      rep.check(`BGP authentication (MD5) secrets in "${this.name}" were carried over encrypted. They only work ` +
+        'if the PA-520 has the same master key as the PA-220.');
+    this.rejectDefault = findtext(b, 'reject-default-route') !== 'no';
+    this.allowRedistDefault = findtext(b, 'allow-redist-default-route') === 'yes';
+    const redist = this.redistribution();
+    if (redist) out.appendChild(xel('redistribution-profile', null, xel('ipv4', null, xel('unicast', {text: redist}))));
+    this.policies();
+    const pgs = xel('peer-group');
+    this.limits = [];
+    for (const g of findAll(b, 'peer-group/entry')) pgs.appendChild(this.peerGroup(g));
+    if (pgs.children.length) out.appendChild(pgs);
+    if (this.limits.length)
+      rep.check(`BGP peers in "${this.name}" have a maximum number of prefixes (${this.limits.join(', ')}; ` +
+        '5000 is the PAN-OS 10.2 default). PAN-OS 10.2 dropped the prefixes above the limit; Advanced ' +
+        'Routing accepts them and logs a warning, as it has no "drop the excess" option.');
+    for (const kind of ['conditional-advertisement', 'aggregation']) {
+      const pol = find(b, 'policy/' + kind);
+      if (pol && pol.getElementsByTagName('entry').length)
+        this.todo(`${kind.replace(/-/g, ' ')} policies are configured.`);
+    }
+    const nGroups = findAll(b, 'peer-group/entry').length;
+    const nPeers = findAll(b, 'peer-group/entry/peer/entry').length;
+    rep.bgpPeers += nPeers;
+    rep.change(`BGP in "${this.name}" (AS ${findtext(b, 'local-as') || '?'}) converted: ${nGroups} peer ` +
+      `group${nGroups === 1 ? '' : 's'}, ${nPeers} peer${nPeers === 1 ? '' : 's'}.`);
+    if (this.rejectDefault)
+      rep.change(`BGP in "${this.name}" rejected a default route received from peers ("Reject Default Route"). ` +
+        'Advanced Routing has no such switch, so each peer group now has the inbound prefix list ' +
+        '"reject-default-route".');
+    return out;
+  }
+
+  peerGroup(g) {
+    const gname = g.getAttribute('name');
+    this.unknown(g, `peer-group ${gname}`, ['enable', 'type', 'peer', 'aggregated-confed-as-path', 'soft-reset-with-stored-info']);
+    const out = xel('entry', {name: gname});
+    if (find(g, 'enable')) sub(out, 'enable', findtext(g, 'enable'));
+    const t = find(g, 'type');
+    let kind = t && t.children.length ? xtag(t) : 'ebgp';
+    const af = {soft: findtext(g, 'soft-reset-with-stored-info') === 'yes', self: false, private: false};
+    if (kind === 'ebgp') {
+      const e = t ? find(t, 'ebgp') : null;
+      if (e) {
+        this.unknown(e, `peer-group ${gname}/type/ebgp`, ['remove-private-as', 'import-nexthop', 'export-nexthop']);
+        af.private = findtext(e, 'remove-private-as') === 'yes';
+        af.self = findtext(e, 'export-nexthop') === 'use-self';
+        if (findtext(e, 'import-nexthop') === 'use-peer')
+          this.todo(`peer group "${gname}" overrides the next hop of received routes with the peer address ` +
+            '("import next hop: use peer").');
+      }
+    } else if (kind === 'ibgp') {
+      const e = find(t, 'ibgp');
+      this.unknown(e, `peer-group ${gname}/type/ibgp`, ['export-nexthop']);
+      af.self = findtext(e, 'export-nexthop') === 'use-self';
+    } else {
+      this.todo(`peer group "${gname}" is of type "${kind}" (confederation).`);
+      kind = kind === 'ibgp-confed' ? 'ibgp' : 'ebgp';
+    }
+    sub(sub(out, 'type'), kind);
+    const peers = findAll(g, 'peer/entry');
+    const limits = peers.map(p => this.maxPrefixes(p));
+    const groupLimit = limits.length && limits.every(x => x === limits[0]) ? limits[0] : '5000';
+    const afName = this.afProfile(af, groupLimit);
+    sub(sub(out, 'address-family'), 'ipv4', afName);
+    const filt = this.filteringProfile(gname);
+    if (filt) sub(sub(out, 'filtering-profile'), 'ipv4', filt);
+    const pe = sub(out, 'peer');
+    peers.forEach((p, i) => pe.appendChild(this.peer(gname, p,
+      limits[i] === groupLimit ? null : [this.afProfile(af, limits[i]), filt])));
+    return out;
+  }
+
+  maxPrefixes(p) {
+    const v = findtext(p, 'max-prefixes') || '5000';
+    return v === 'unlimited' ? '4294967295' : v;
+  }
+
+  afProfile(af, limit) {
+    const name = 'ipv4' + (af.self ? '-nh-self' : '') + (af.private ? '-rm-private' : '') +
+      (af.soft ? '-soft-reconfig' : '') + (limit === '5000' ? '' : limit === '4294967295' ? '-max-unlimited' : '-max' + limit);
+    const u = xel('unicast', null, xel('enable', {text: 'yes'}));
+    if (af.soft) sub(u, 'soft-reconfig-with-stored-info', 'yes');
+    if (af.private) sub(sub(u, 'remove-private-AS'), 'all');
+    if (af.self) sub(sub(u, 'next-hop'), 'self');
+    u.appendChild(xel('maximum-prefix', null, xel('num_prefixes', {text: limit}), xel('action', null, xel('warning-only'))));
+    return this.p.add('af', name, xel('entry', null, xel('ipv4', null, u)));
+  }
+
+  peer(gname, p, ownAf) {
+    const pname = p.getAttribute('name');
+    const where = `peer ${pname} (group ${gname})`;
+    this.unknown(p, where, ['enable', 'peer-as', 'local-address', 'peer-address', 'connection-options', 'bfd',
+      'max-prefixes', 'enable-mp-bgp', 'address-family-identifier',
+      'subsequent-address-family-identifier', 'reflector-client', 'peering-type',
+      'enable-sender-side-loop-detection']);
+    const out = xel('entry', {name: pname});
+    for (const t of ['enable', 'peer-as']) if (find(p, t)) sub(out, t, findtext(p, t));
+    if (ownAf) {
+      const no = sub(sub(out, 'inherit'), 'no');
+      sub(sub(no, 'address-family'), 'ipv4', ownAf[0]);
+      if (ownAf[1]) sub(sub(no, 'filtering-profile'), 'ipv4', ownAf[1]);
+    }
+    const la = find(p, 'local-address');
+    if (la) {
+      this.unknown(la, where + '/local-address', ['interface', 'ip']);
+      out.appendChild(la.cloneNode(true));
+    }
+    const pa = find(p, 'peer-address');
+    if (pa) {
+      if (find(pa, 'fqdn')) this.todo(`peer "${pname}" uses an FQDN peer address.`);
+      else out.appendChild(pa.cloneNode(true));
+    }
+    if (findtext(p, 'enable-mp-bgp') === 'yes' || findtext(p, 'address-family-identifier') === 'ipv6')
+      this.todo(`peer "${pname}" uses MP-BGP / IPv6.`);
+    if (findtext(p, 'subsequent-address-family-identifier/multicast') === 'yes' ||
+        findtext(p, 'subsequent-address-family-identifier/unicast') === 'no')
+      this.todo(`peer "${pname}" exchanges multicast routes (SAFI multicast) or no unicast routes.`);
+    const rc = findtext(p, 'reflector-client');
+    if (rc !== null && rc !== 'non-client') this.todo(`peer "${pname}" is a route reflector client.`);
+    const pt = findtext(p, 'peering-type');
+    if (pt !== null && pt !== 'unspecified') this.todo(`peer "${pname}" uses peering type "${pt}".`);
+    const co = this.connectionOptions(pname, find(p, 'connection-options'));
+    if (co) out.appendChild(co);
+    const bfd = findtext(p, 'bfd/profile');
+    if (bfd) out.appendChild(xel('bfd', null, xel('profile', {text: bfd === 'Inherit-vr-global-setting'
+      ? 'Inherit-lr-global-setting' : bfd})));
+    if (find(p, 'enable-sender-side-loop-detection'))
+      sub(out, 'enable-sender-side-loop-detection', findtext(p, 'enable-sender-side-loop-detection'));
+    const lim = this.maxPrefixes(p);
+    if (lim !== '4294967295') this.limits.push(`${pname} ${lim}`);
+    return out;
+  }
+
+  connectionOptions(pname, co) {
+    if (!co) return null;
+    this.unknown(co, `peer ${pname}/connection-options`, ['authentication', 'keep-alive-interval', 'hold-time',
+      'idle-hold-time', 'min-route-adv-interval', 'open-delay-time', 'multihop', 'incoming-bgp-connection',
+      'outgoing-bgp-connection']);
+    const out = xel('connection-options');
+    if (findtext(co, 'authentication')) {
+      const a = findtext(co, 'authentication');
+      if (!has(this.auth, a)) this.todo(`peer "${pname}" uses authentication profile "${a}", which does not exist.`);
+      else sub(out, 'authentication', this.auth[a]);
+    }
+    const tv = {};
+    for (const [k, d] of Object.entries(BGP_PEER_DEFAULTS)) tv[k] = findtext(co, k) || d;
+    if (tv['idle-hold-time'] !== '15')
+      this.rep.check(`BGP peer "${pname}" in "${this.name}" had idle hold time ${tv['idle-hold-time']} s. ` +
+        'Advanced Routing has no idle hold time; its reconnect retry interval (15 s) applies.');
+    const tk = ['keep-alive-interval', 'hold-time', 'min-route-adv-interval', 'open-delay-time'];
+    if (tk.some(k => tv[k] !== BGP_PEER_DEFAULTS[k])) {
+      const name = `ka${tv['keep-alive-interval']}-hold${tv['hold-time']}` +
+        (tv['min-route-adv-interval'] === '30' ? '' : `-adv${tv['min-route-adv-interval']}`) +
+        (tv['open-delay-time'] === '0' ? '' : `-open${tv['open-delay-time']}`);
+      const t = xel('entry');
+      for (const k of tk) if (tv[k] !== BGP_PEER_DEFAULTS[k]) sub(t, k, tv[k]);
+      sub(out, 'timers', this.p.add('timer', name, t));
+    }
+    if (findtext(co, 'multihop') !== null) sub(out, 'multihop', findtext(co, 'multihop'));
+    for (const [d, port] of [['incoming-bgp-connection', 'remote-port'], ['outgoing-bgp-connection', 'local-port']]) {
+      const x = find(co, d);
+      if (x && (findtext(x, 'allow') === 'no' || (findtext(x, port) || '0') !== '0'))
+        this.todo(`peer "${pname}" restricts ${d.replace(/-/g, ' ')}s (allow / port).`);
+    }
+    return out.children.length ? out : null;
+  }
+
+  policies() {
+    this.routeMaps = new Map();
+    const byGroup = new Map();
+    for (const [direction, tag] of [['in', 'import'], ['out', 'export']]) {
+      for (const r of findAll(this.bgp, `policy/${tag}/rules/entry`)) {
+        if (findtext(r, 'enable') === 'no') continue;
+        const entry = this.rule(r, tag);
+        for (const g of texts(r, 'used-by/member')) {
+          const key = g + '\u0000' + direction;
+          if (!byGroup.has(key)) byGroup.set(key, [g, direction, []]);
+          byGroup.get(key)[2].push(entry);
+        }
+      }
+    }
+    for (const [key, [g, direction, entries]] of byGroup) {
+      const rm = xel('route-map');
+      entries.forEach((e, i) => {
+        const c = e.cloneNode(true);
+        c.setAttribute('name', String((i + 1) * 10));
+        rm.appendChild(c);
+      });
+      this.routeMaps.set(key, this.p.add('rm-bgp', nm(`${this.pfx}${g}-${direction}`), xel('entry', null, rm)));
+    }
+  }
+
+  rule(r, tag) {
+    const rname = r.getAttribute('name');
+    const what = `${tag} rule "${rname}"`;
+    const base = nm(`${this.pfx}${tag}-${rname}`);
+    this.unknown(r, what, ['enable', 'used-by', 'match', 'action']);
+    const match = xel('match');
+    const m = find(r, 'match');
+    if (m) {
+      this.unknown(m, what + '/match', ['address-prefix', 'as-path', 'community', 'extended-community', 'med',
+        'nexthop', 'from-peer', 'route-table']);
+      const ips = xel('ipv4');
+      const pfx = findAll(m, 'address-prefix/entry');
+      if (pfx.length) {
+        this.p.prefixList(base, pfx.map(e => ['permit', e.getAttribute('name'), findtext(e, 'exact') === 'yes']));
+        ips.appendChild(xel('address', null, xel('prefix-list', {text: base})));
+      }
+      const nh = texts(m, 'nexthop/member');
+      if (nh.length) {
+        this.p.prefixList(nm(base + '-nh'), nh.map(x => ['permit', x.includes('/') ? x : x + '/32', true]));
+        ips.appendChild(xel('next-hop', null, xel('prefix-list', {text: nm(base + '-nh')})));
+      }
+      if (ips.children.length) match.appendChild(ips);
+      if (findtext(m, 'med')) sub(match, 'metric', findtext(m, 'med'));
+      let rx = findtext(m, 'as-path/regex');
+      if (rx) {
+        if (!/^[0-9_^|\[,{}()\]$*+.?\\-]+$/.test(rx))
+          this.todo(`${what} matches the AS path "${rx}", which uses characters Advanced Routing AS-path ` +
+            'lists do not accept.');
+        else {
+          this.p.add('aspath', base, xel('entry', null, xel('aspath-entry', null, xel('entry', {name: '10'},
+            xel('action', {text: 'permit'}), xel('aspath-regex', {text: rx})))));
+          sub(match, 'as-path-access-list', base);
+        }
+      }
+      rx = findtext(m, 'community/regex');
+      if (rx) {
+        const lit = /^\^?(\d{1,5}:\d{1,5}|no-export|no-advertise|local-as|internet)\$?$/.exec(rx);
+        if (!lit)
+          this.todo(`${what} matches communities with the regular expression "${rx}"; only a single ` +
+            'literal community (such as 65000:100) is converted.');
+        else {
+          this.p.add('community', base, xel('entry', null, xel('type', null, xel('regular', null, xel('regular-entry', null,
+            xel('entry', {name: '10'}, xel('action', {text: 'permit'}), xmembers('community', [lit[1]])))))));
+          sub(match, 'regular-community', base);
+        }
+      }
+      if (findtext(m, 'extended-community/regex')) this.todo(`${what} matches extended communities.`);
+      if (find(m, 'from-peer/member')) this.todo(`${what} matches on the peer the route came from ("from peer").`);
+      const rt = find(m, 'route-table');
+      if (rt && rt.children.length && xtag(rt) !== 'unicast') this.todo(`${what} matches the "${xtag(rt)}" route table.`);
+    }
+    const a = find(r, 'action');
+    if (!a || find(a, 'deny')) return rmEntry(0, 'deny', match);
+    const allow = find(a, 'allow');
+    const st = xel('set');
+    if (allow) {
+      this.unknown(allow, what + '/action/allow', ['update', 'dampening']);
+      if (findtext(allow, 'dampening')) this.todo(`${what} applies route-flap dampening.`);
+      const u = find(allow, 'update');
+      if (u) {
+        this.unknown(u, what + '/update', ['local-preference', 'med', 'origin', 'weight', 'community',
+          'extended-community', 'as-path', 'as-path-limit', 'nexthop']);
+        if (findtext(u, 'weight')) sub(st, 'weight', findtext(u, 'weight'));
+        if (findtext(u, 'med'))
+          st.appendChild(xel('metric', null, xel('action', {text: 'set'}), xel('value', {text: findtext(u, 'med')})));
+        if (findtext(u, 'local-preference')) sub(st, 'local-preference', findtext(u, 'local-preference'));
+        const o = find(u, 'origin');
+        if (o && o.children.length) sub(st, 'origin', xtag(o));
+        let c = find(u, 'community');
+        if (c && c.children.length && xtag(c) !== 'none') {
+          if (xtag(c) === 'append' || xtag(c) === 'overwrite') {
+            if (xtag(c) === 'overwrite') sub(st, 'overwrite-regular-community', 'yes');
+            st.appendChild(xmembers('regular-community', texts(c.children[0], 'member')));
+          } else this.todo(`${what} removes communities (${xtag(c)}).`);
+        }
+        c = find(u, 'extended-community');
+        if (c && c.children.length && xtag(c) !== 'none') this.todo(`${what} changes extended communities.`);
+        const ap = find(u, 'as-path');
+        if (ap && ap.children.length && xtag(ap) !== 'none') {
+          if (xtag(ap) === 'prepend' && tag === 'export') {
+            const n = parseInt(ap.children[0].textContent || '0', 10);
+            if (n > 1) st.appendChild(xmembers('aspath-prepend', Array(n - 1).fill(findtext(this.bgp, 'local-as'))));
+          } else this.todo(`${what} changes the AS path (${xtag(ap)}).`);
+        }
+        if (findtext(u, 'as-path-limit'))
+          this.rep.check(`BGP ${what} in "${this.name}" set the AS_PATHLIMIT attribute; Advanced Routing ` +
+            'does not support it and it was dropped.');
+        if (findtext(u, 'nexthop')) this.todo(`${what} sets the next hop.`);
+      }
+    }
+    return rmEntry(0, 'permit', match, st);
+  }
+
+  filteringProfile(gname) {
+    const u = xel('unicast');
+    if (this.rejectDefault) {
+      this.p.prefixList('reject-default-route', [['deny', '0.0.0.0/0', true], ['permit', 'any', false]]);
+      u.appendChild(xel('inbound-network-filters', null, xel('prefix-list', {text: 'reject-default-route'})));
+    }
+    const rin = this.routeMaps.get(gname + '\u0000in'), rout = this.routeMaps.get(gname + '\u0000out');
+    if (rin || rout) {
+      const rms = sub(u, 'route-maps');
+      if (rin) sub(rms, 'inbound', rin);
+      if (rout) sub(rms, 'outbound', rout);
+    }
+    if (!u.children.length) return null;
+    return this.p.add('filtering', nm(this.pfx + gname), xel('entry', null, xel('ipv4', null, u)));
+  }
+
+  redistribution() {
+    const rules = findAll(this.bgp, 'redist-rules/entry').filter(r => findtext(r, 'enable') !== 'no');
+    if (!rules.length) return null;
+    const profiles = new Map();
+    for (const p of findAll(this.vr, 'protocol/redist-profile/entry')) profiles.set(p.getAttribute('name'), p);
+    const used = [];
+    for (const r of rules) {
+      const rname = r.getAttribute('name');
+      const what = `redistribution rule "${rname}"`;
+      this.unknown(r, what, ['enable', 'address-family-identifier', 'route-table', 'set-origin', 'set-med',
+        'set-local-preference', 'set-community', 'set-extended-community', 'set-as-path-limit', 'metric']);
+      if (findtext(r, 'address-family-identifier') === 'ipv6') { this.todo(`${what} redistributes IPv6 routes.`); continue; }
+      const rt = find(r, 'route-table');
+      if (rt && rt.children.length && xtag(rt) !== 'unicast') this.todo(`${what} redistributes into the "${xtag(rt)}" route table.`);
+      if (findtext(r, 'set-extended-community/member')) this.todo(`${what} sets extended communities.`);
+      if (findtext(r, 'metric'))
+        this.rep.change(`BGP ${what} in "${this.name}" set "metric" ${findtext(r, 'metric')}, which had no ` +
+          'effect on the routes PAN-OS 10.2 advertised (the MED comes from "set MED"). ' +
+          'It was not carried over.');
+      if (findtext(r, 'set-as-path-limit'))
+        this.rep.check(`BGP ${what} in "${this.name}" set the AS_PATHLIMIT attribute; Advanced Routing does ` +
+          'not support it and it was dropped.');
+      const p = profiles.get(rname);
+      if (!p) { this.todo(`${what} refers to redistribution profile "${rname}", which does not exist.`); continue; }
+      used.push([parseInt(findtext(p, 'priority') || '0', 10), rname, p, r]);
+    }
+    used.sort((x, y) => x[0] - y[0] || (x[1] < y[1] ? -1 : x[1] > y[1] ? 1 : 0));
+    const loopbacks = texts(this.vr, 'interface/member').filter(t => t.startsWith('loopback'));
+    const maps = {};
+    for (const [src, legacyType] of [['connected', 'connect'], ['static', 'static']]) {
+      let entries = [];
+      if (src === 'connected') entries = entries.concat(loopbacks.map(lb => rmEntry(0, 'deny', xel('match', null, xel('interface', {text: lb})))));
+      if (!this.allowRedistDefault) entries.push(rmEntry(0, 'deny', xel('match', null, matchPrefix('default-route'))));
+      let nPermit = 0, lists = [];
+      for (const [, pname, p, r] of used) {
+        const types = texts(p, 'filter/type/member');
+        if (types.length && !types.includes(legacyType)) continue;
+        nPermit += find(p, 'action/no-redist') ? 0 : 1;
+        const [e, pls] = this.redistEntries(pname, p, r);
+        entries = entries.concat(e);
+        lists = lists.concat(pls);
+      }
+      if (nPermit) {
+        if (!this.allowRedistDefault) this.p.prefixList('default-route', [['permit', '0.0.0.0/0', true]]);
+        for (const [name, rows] of lists) this.p.prefixList(name, rows);
+        const rm = xel('route-map');
+        entries.forEach((e, i) => { e.setAttribute('name', String((i + 1) * 10)); rm.appendChild(e); });
+        maps[src] = this.p.add('rm-redist', nm(`${this.pfx}${src}-to-bgp`),
+          xel('entry', null, xel('connected-static', null, xel('bgp', null, rm))));
+      }
+    }
+    for (const [, pname, p] of used)
+      for (const t of texts(p, 'filter/type/member'))
+        if (t !== 'connect' && t !== 'static') this.todo(`redistribution profile "${pname}" redistributes ${t} routes into BGP.`);
+    if (!Object.keys(maps).length) return null;
+    const u = xel('unicast');
+    for (const src of ['connected', 'static'])
+      if (has(maps, src)) u.appendChild(xel(src, null, xel('enable', {text: 'yes'}), xel('route-map', {text: maps[src]})));
+    if (loopbacks.length && has(maps, 'connected'))
+      this.rep.change(`BGP in "${this.name}" redistributes connected routes. PAN-OS 10.2 did not include ` +
+        'loopback addresses in them, Advanced Routing does, so the loopback interfaces ' +
+        `(${loopbacks.join(', ')}) are excluded to keep the same routes advertised.`);
+    return this.p.add('redist', nm(this.pfx + 'redist'), xel('entry', null, xel('ipv4', null, u)));
+  }
+
+  redistEntries(pname, p, r) {
+    const what = `redistribution profile "${pname}"`;
+    const f = find(p, 'filter');
+    if (f) {
+      this.unknown(f, what + '/filter', ['type', 'interface', 'destination', 'nexthop', 'ospf', 'bgp']);
+      for (const t of ['ospf', 'bgp'])
+        if (find(f, t) && find(f, t).children.length) this.todo(`${what} filters on ${t.toUpperCase()} attributes.`);
+    }
+    const base = nm(`${this.pfx}redist-${pname}`);
+    const ips = xel('ipv4'), pls = [];
+    const dst = texts(p, 'filter/destination/member');
+    if (dst.length) {
+      pls.push([base, dst.map(d => ['permit', d, false])]);
+      ips.appendChild(xel('address', null, xel('prefix-list', {text: base})));
+    }
+    const nh = texts(p, 'filter/nexthop/member');
+    if (nh.length) {
+      pls.push([nm(base + '-nh'), nh.map(x => ['permit', x.includes('/') ? x : x + '/32', false])]);
+      ips.appendChild(xel('next-hop', null, xel('prefix-list', {text: nm(base + '-nh')})));
+    }
+    const action = find(p, 'action/no-redist') ? 'deny' : 'permit';
+    const st = xel('set');
+    if (action === 'permit') {
+      const o = findtext(r, 'set-origin');
+      if (o) sub(st, 'origin', o);
+      st.appendChild(xel('metric', null, xel('action', {text: 'set'}), xel('value', {text: findtext(r, 'set-med') || '0'})));
+      if (findtext(r, 'set-local-preference')) sub(st, 'local-preference', findtext(r, 'set-local-preference'));
+      const comm = texts(r, 'set-community/member');
+      if (comm.length) st.appendChild(xmembers('regular-community', comm));
+    }
+    const ifcs = texts(p, 'filter/interface/member');
+    const out = [];
+    for (const ifc of (ifcs.length ? ifcs : [null])) {
+      const match = xel('match');
+      if (ifc) sub(match, 'interface', ifc);
+      if (ips.children.length) match.appendChild(ips.cloneNode(true));
+      out.push(rmEntry(0, action, match, st.cloneNode(true)));
+    }
+    return [out, pls];
+  }
+}
+
+function convertVr(vr, rep, profiles) {
   const doc = vr.ownerDocument;
   const name = vr.getAttribute('name');
   rep.routers += 1;
@@ -305,10 +856,13 @@ function convertVr(vr, rep) {
   if (mc.children.length) sub(vrf, 'multicast').appendChild(mc);
   const proto = find(vr, 'protocol');
   if (proto) {
+    const bgp = find(proto, 'bgp');
+    if (bgp && protocolInUse(bgp)) vrf.appendChild(new BgpVr(vr, profiles, rep).convert());
     for (const p of Array.from(proto.children)) {
+      if (p.tagName === 'bgp' || (p.tagName === 'redist-profile' && bgp && protocolInUse(bgp))) continue;
       if (protocolInUse(p))
         rep.todo(`"${name}" uses ${has(PROTOCOL_NAMES, p.tagName) ? PROTOCOL_NAMES[p.tagName] : p.tagName}. ` +
-          'This version converts static routing only; configure it by hand on the PA-520.');
+          'This version converts static routing and BGP only; configure it by hand on the PA-520.');
     }
   }
   const mcast = find(vr, 'multicast');
@@ -336,6 +890,7 @@ function convert(root, rep) {
     throw new InputError('This config has no virtual routers, so there is no routing to convert.');
   }
   const doc = root.ownerDocument;
+  DOC = doc;
   for (const dev of devs) {
     rep.hostname = rep.hostname || (findtext(dev, 'deviceconfig/system/hostname') || '');
     const net = find(dev, 'network');
@@ -347,7 +902,8 @@ function convert(root, rep) {
       rep.change('Removed an empty or stale logical-router section before converting.');
     }
     const lrs = doc.createElement('logical-router');
-    for (const vr of kids(vrs, 'entry')) lrs.appendChild(convertVr(vr, rep));
+    const profiles = new Profiles();
+    for (const vr of kids(vrs, 'entry')) lrs.appendChild(convertVr(vr, rep, profiles));
     net.replaceChild(lrs, vrs);
     // BFD profiles: network/profiles/bfd-profile -> network/routing-profile/bfd (same fields)
     const bp = find(net, 'profiles/bfd-profile');
@@ -359,6 +915,7 @@ function convert(root, rep) {
       const k = kids(bp, 'entry').length;
       rep.change(`${k} BFD profile${k === 1 ? '' : 's'} moved to the routing profiles.`);
     }
+    profiles.write(net);
     // vsys import lists: import/network/virtual-router -> import/network/logical-router
     for (const vsys of findAll(dev, 'vsys/entry')) {
       const imp = find(vsys, 'import/network/virtual-router');
@@ -507,7 +1064,7 @@ function init() {
     window.scrollTo({top: 0, behavior: 'smooth'});
   });
 
-  // Test hook for lab/parity.py: an injected base64 input is converted and the results written back as base64.
+  // Test hook for tools/parity.py: an injected base64 input is converted and the results written back as base64.
   const t = $('vr2lr-test-input');
   if (t) {
     const bytes = Uint8Array.from(atob(t.textContent.trim()), c => c.charCodeAt(0));

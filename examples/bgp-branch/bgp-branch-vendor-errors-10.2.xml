@@ -1,0 +1,14 @@
+<errors>
+  <conversion-errors>
+    <entry name="1" tag="orange">
+      <source-xpath>/config/devices/entry[@name='localhost.localdomain']/network/virtual-router/entry[@name='default']/protocol/bgp/policy/export/rules/entry[@name='out-site']/action/allow/update/as-path</source-xpath>
+      <error-code>10022</error-code>
+      <error-message>In Agreegate route map AS PATH update is not supported</error-message>
+      <metadata>
+        <device>localhost.localdomain</device>
+        <virtual-router>default</virtual-router>
+        <protocol>bgp</protocol>
+        </metadata>
+      </entry>
+    </conversion-errors>
+  </errors>
