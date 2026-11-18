@@ -137,6 +137,9 @@ AS path, local preference, MED) on both routers. The same check catches a delibe
   Advanced Routing only has warning-only (accepts all and logs) or restart (resets the session); the default there is
   1000. The converter carries the legacy limit with warning-only and reports it.
 - `multihop 0` works for directly reachable peers in both (TTL 1 for eBGP).
+- **Remove private AS** (eBGP peer group): legacy strips the private AS numbers from the path it sends
+  (`65000 65200` arrives as `65000`). `remove-private-AS all` does the same on Advanced Routing; verified with a
+  three-router chain on both releases, using the converter's browser output.
 
 ### Not converted (reported as "Not converted" items)
 
@@ -164,5 +167,6 @@ max-prefixes value and reset dampening profiles to defaults without attaching th
 - **no-install:** a possible ARE equivalent is a per-VRF `rib-filter` route-map denying the prefix, so it stays
   configured but out of the RIB. Untested; the converter skips such routes with a warning instead.
 - **OSPF, OSPFv3, RIP and PIM** remain out of scope and are reported for manual work.
-- **BGP remove-private-AS** maps to `remove-private-AS all`; this mapping validates but was not exercised at runtime.
+- **BGP remove-private-AS** with a path that mixes public and private AS numbers is untested: it needs four routers in
+  a chain, and the platform allows three. Paths of private AS numbers only were verified (see above).
 - Only 12.1.4 has been tested as a target.
